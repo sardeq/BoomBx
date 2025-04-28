@@ -1,0 +1,242 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:BoomBx.ViewModels"
+        xmlns:views="using:BoomBx.Views"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" 
+        x:Class="BoomBx.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        xmlns:model="using:BoomBx.Models"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="BoomBx"
+        Background="#1A1A1A"
+        WindowStartupLocation="CenterScreen"
+        FontFamily="Segoe UI">
+
+    <Design.DataContext>
+        <vm:MainWindowViewModel/>
+    </Design.DataContext>
+
+    <Grid Background="#1A1A1A" ColumnDefinitions="*,300" 
+          HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <Border x:Name="InstallationPanel" Grid.ColumnSpan="2"
+                Background="#2D2D2D" 
+                Padding="20" 
+                CornerRadius="8"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                ZIndex="100"
+                IsVisible="False">
+            <StackPanel Spacing="15">
+                <TextBlock Text="VB-Cable Installation" 
+                           FontSize="16" 
+                           FontWeight="SemiBold"
+                           Foreground="#E0E0E0"/>
+                <StackPanel Orientation="Horizontal" 
+                            HorizontalAlignment="Center" 
+                            Spacing="15">
+                    <Button Content="Install Now" 
+                            Click="OnInstallClicked" 
+                            Width="120"
+                            Background="#007ACC"
+                            Foreground="White"/>
+                    <Button Content="Install Later" 
+                            Click="OnExitClicked" 
+                            Width="120"
+                            Background="#404040"
+                            Foreground="White"/>
+                </StackPanel>
+            </StackPanel>
+        </Border>
+
+        <ScrollViewer VerticalScrollBarVisibility="Auto" Grid.Column="0"
+                      HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch">
+            <StackPanel x:Name="MainUI" 
+                        IsVisible="False" 
+                        Spacing="20" 
+                        HorizontalAlignment="Center" 
+                        VerticalAlignment="Top"
+                        Width="450" 
+                        Margin="20">
+                <Border Background="#2D2D2D" 
+                        CornerRadius="8" 
+                        Padding="25"
+                        BoxShadow="0 4 12 0 #00000060">
+                    <StackPanel Spacing="25">
+                        <TextBlock Text="Audio Controller" 
+                                   FontSize="22" 
+                                   FontWeight="Bold"
+                                   Foreground="#E0E0E0" 
+                                   HorizontalAlignment="Center"/>
+
+                        <StackPanel Spacing="10">
+                            <TextBlock Text="SOUND LIBRARY" 
+                                       Foreground="#A0A0A0"
+                                       FontSize="12"
+                                       FontWeight="Bold"/>
+                            
+                            <StackPanel Orientation="Horizontal" Spacing="10">
+                                <Button Content="Add Sound" 
+                                        Click="AddToLibrary" 
+                                        Width="120"
+                                        Background="#007ACC"/>
+                                <Button Content="Remove Selected" 
+                                        Click="RemoveFromLibrary" 
+                                        Width="120"
+                                        Background="#404040"/>
+                            </StackPanel>
+                            
+                            <Border Background="#333333" CornerRadius="4">
+                                <ListBox ItemsSource="{Binding Sounds}"
+                                         SelectedItem="{Binding SelectedSound, Mode=TwoWay}"
+                                         MaxHeight="200"
+                                         ScrollViewer.VerticalScrollBarVisibility="Auto">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <StackPanel />
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="model:SoundItem">
+                                            <TextBlock Text="{Binding Name}" 
+                                                       Foreground="#E0E0E0"
+                                                       Padding="8 6"
+                                                       FontSize="14"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                            </Border>
+                        </StackPanel>
+
+                        <TextBlock Text="{Binding SelectedFilePath}" 
+                                   Foreground="#A0A0A0"
+                                   FontSize="12"
+                                   TextTrimming="CharacterEllipsis"/>
+
+                        <StackPanel Spacing="15">
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="PLAYBACK DEVICE" 
+                                           Foreground="#A0A0A0"
+                                           FontSize="12"
+                                           FontWeight="Bold"/>
+                                <ComboBox x:Name="PlaybackComboBox" 
+                                          Height="40" 
+                                          FontSize="14"/>
+                            </StackPanel>
+
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="MICROPHONE INPUT" 
+                                           Foreground="#A0A0A0"
+                                           FontSize="12"
+                                           FontWeight="Bold"/>
+                                <ComboBox x:Name="CaptureComboBox" 
+                                          Height="40" 
+                                          FontSize="14"/>
+                            </StackPanel>
+                        </StackPanel>
+
+                        <TextBlock x:Name="StatMessage" 
+                                   VerticalAlignment="Center"
+                                   Foreground="#E0E0E0"
+                                   FontSize="13"/>
+                    </StackPanel>
+                </Border>
+            </StackPanel>
+        </ScrollViewer>
+
+        <Border Grid.Column="1"
+                Background="#252525"
+                Margin="20"
+                CornerRadius="8"
+                IsVisible="{Binding SelectedSound, Converter={x:Static views:ObjectNotNullToVisibilityConverter.Instance}}">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <StackPanel Spacing="20" Margin="15">
+                    <Border Background="#333333" CornerRadius="8" Padding="15">
+                        <StackPanel HorizontalAlignment="Center" Spacing="10">
+                        <Image Width="60" Height="60" 
+                            Source="{Binding SelectedSound.IconPath, StringFormat='{}{0}?{cache}'}"
+                            VerticalAlignment="Center"
+                            HorizontalAlignment="Center"/>
+                            <TextBlock Text="SELECTED AUDIO" 
+                                       Foreground="#A0A0A0"
+                                       FontSize="12"
+                                       FontWeight="Bold"/>
+                        </StackPanel>
+                    </Border>
+
+                    <StackPanel Spacing="15">
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Title" Foreground="#A0A0A0" FontSize="12"/>
+                            <TextBox Text="{Binding SelectedSound.Name, Mode=TwoWay}"
+                                     FontSize="14"
+                                     Background="#333333"
+                                     Foreground="White"
+                                     BorderThickness="0"
+                                     Padding="10"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Volume" Foreground="#A0A0A0" FontSize="12"/>
+                            <Slider Minimum="0" Maximum="100" 
+                                    Value="{Binding SelectedSound.Volume, Mode=TwoWay}"
+                                    Background="Transparent"
+                                    Foreground="#007ACC"/>
+                            <TextBlock Text="{Binding SelectedSound.Volume, StringFormat='{}Volume: {0:F0}%'}"
+                                       Foreground="#A0A0A0"
+                                       FontSize="12"/>
+                        </StackPanel>
+
+                        <Button Content="Change Icon" 
+                                Click="ChangeIconClicked" 
+                                Width="120" 
+                                Background="#007ACC"/>
+                        <Button Content="Save Changes" 
+                                Click="SaveChangesClicked" 
+                                Width="120" 
+                                Background="#007ACC"/>
+                    </StackPanel>
+
+                    <Button x:Name="PlayStopButton" 
+                            Content="▶ PLAY AUDIO" 
+                            FontSize="16" 
+                            Height="50"
+                            HorizontalAlignment="Stretch"
+                            Background="#007ACC"
+                            Foreground="White"
+                            Click="TogglePlaybackHandler"/>
+                </StackPanel>
+            </ScrollViewer>
+        </Border>
+
+        <Border x:Name="ProgressBarContainer" Grid.ColumnSpan="2"
+                Background="#252525" 
+                Height="50"
+                VerticalAlignment="Bottom"
+                Padding="15"
+                CornerRadius="4"
+                IsVisible="False">
+            <StackPanel Orientation="Horizontal" 
+                        Spacing="15"
+                        VerticalAlignment="Center">
+                <ProgressBar Width="250" 
+                             Height="8" 
+                             IsIndeterminate="True"
+                             Foreground="#007ACC"/>
+                <TextBlock x:Name="ProgressStatus" 
+                           VerticalAlignment="Center"
+                           Foreground="#E0E0E0"
+                           FontSize="13"/>
+                <TextBlock x:Name="InstallationMessage" 
+                           VerticalAlignment="Center"
+                           Foreground="#E0E0E0"
+                           FontSize="13"/>
+                <TextBlock x:Name="StatusMessage" 
+                           VerticalAlignment="Center"
+                           Foreground="#E0E0E0"
+                           FontSize="13"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</Window>

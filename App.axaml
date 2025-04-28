@@ -1,0 +1,112 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="BoomBx.App"
+             xmlns:local="using:BoomBx"
+             RequestedThemeVariant="Dark">
+
+    <Application.DataTemplates>
+        <local:ViewLocator/>
+    </Application.DataTemplates>
+  
+    <Application.Styles>
+        <FluentTheme />
+
+        <!-- ComboBox Styles -->
+        <Style Selector="ComboBox">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="BorderBrush" Value="#404040"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="12 8"/>
+        </Style>
+
+        <Style Selector="ComboBox:pointerover">
+            <Setter Property="BorderBrush" Value="#007ACC"/>
+        </Style>
+
+        <Style Selector="ComboBoxItem">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Padding" Value="12 8"/>
+        </Style>
+
+        <Style Selector="ComboBoxItem:pointerover">
+            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+
+        <!-- ListBox Styles -->
+        <Style Selector="ListBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style Selector="ListBoxItem">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+        </Style>
+
+        <Style Selector="ListBoxItem:pointerover">
+            <Setter Property="Background" Value="#007ACC20"/>
+        </Style>
+
+        <!-- Button Styles -->
+        <Style Selector="Button">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Background" Value="#404040"/>
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="BorderBrush" Value="Transparent"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="15 8"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+        </Style>
+        
+        <Style Selector="Button:pointerover">
+            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Foreground" Value="White"/>
+        </Style>
+        
+        <Style Selector="Button:pressed">
+            <Setter Property="Background" Value="#006CBE"/>
+        </Style>
+
+        <!-- TextBlock Styles -->
+
+        <Style Selector="TextBox">
+            <Setter Property="Foreground" Value="#E0E0E0"/>
+            <Setter Property="CaretBrush" Value="#007ACC"/>
+            <Setter Property="SelectionBrush" Value="#007ACC40"/>
+            <Setter Property="CornerRadius" Value="4"/>
+        </Style>
+
+        <Style Selector="TextBox:focus">
+            <Setter Property="BorderBrush" Value="#007ACC"/>
+        </Style>
+
+        <!-- Slider Styles -->
+        <Style Selector="Slider">
+            <Setter Property="Background" Value="#404040"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Height" Value="35"/>
+        </Style>
+
+        <Style Selector="Slider:thumb">
+            <Setter Property="Background" Value="#007ACC"/>
+            <Setter Property="Width" Value="10"/>
+            <Setter Property="Height" Value="10"/>
+            <Setter Property="BorderThickness" Value="2"/>
+            <Setter Property="BorderBrush" Value="#FFFFFF"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Ellipse Fill="{TemplateBinding Background}"
+                        Stroke="{TemplateBinding BorderBrush}"
+                        StrokeThickness="{TemplateBinding BorderThickness}"
+                        Width="{TemplateBinding Width}"
+                        Height="{TemplateBinding Height}"/>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+    </Application.Styles>
+</Application>
