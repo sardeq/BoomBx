@@ -11,6 +11,44 @@
     <Application.Styles>
         <FluentTheme />
 
+        <Style Selector="RadioButton.SidebarButton">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Margin" Value="0 5"/>
+            <Setter Property="Padding" Value="10"/>
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="Foreground" Value="#A0A0A0"/>
+            <Setter Property="Cursor" Value="Hand"/>
+            <Setter Property="Template">
+                <ControlTemplate>
+                    <Border Name="border"
+                            Background="{TemplateBinding Background}"
+                            CornerRadius="4"
+                            BorderThickness="1 1 0 1"
+                            BorderBrush="Transparent">
+                        <ContentPresenter ContentTemplate="{TemplateBinding ContentTemplate}"
+                                        Content="{TemplateBinding Content}"
+                                        Margin="{TemplateBinding Padding}"
+                                        HorizontalAlignment="Left"
+                                        VerticalAlignment="Center"/>
+                    </Border>
+                </ControlTemplate>
+            </Setter>
+        </Style>
+
+        <Style Selector="RadioButton.SidebarButton:checked /template/ Border#border">
+            <Setter Property="BorderBrush" Value="#007ACC"/>
+            <Setter Property="Background" Value="#007ACC20"/>
+        </Style>
+
+        <Style Selector="RadioButton.SidebarButton:checked">
+            <Setter Property="Foreground" Value="#007ACC"/>
+        </Style>
+
+        <Style Selector="RadioButton.SidebarButton:pointerover /template/ Border#border">
+            <Setter Property="Background" Value="#007ACC10"/>
+        </Style>
+
         <!-- ComboBox Styles -->
         <Style Selector="ComboBox">
             <Setter Property="Background" Value="#333333"/>
@@ -72,17 +110,43 @@
             <Setter Property="Background" Value="#006CBE"/>
         </Style>
 
-        <!-- TextBlock Styles -->
-
-        <Style Selector="TextBox">
-            <Setter Property="Foreground" Value="#E0E0E0"/>
-            <Setter Property="CaretBrush" Value="#007ACC"/>
-            <Setter Property="SelectionBrush" Value="#007ACC40"/>
-            <Setter Property="CornerRadius" Value="4"/>
+        <!-- Hover effects for cards -->
+        <Style Selector="Border:pointerover">
+            <Setter Property="Effect">
+                <DropShadowEffect BlurRadius="12" Color="#CC007ACC" Opacity="0.2"/>
+            </Setter>
         </Style>
 
-        <Style Selector="TextBox:focus">
-            <Setter Property="BorderBrush" Value="#007ACC"/>
+        <!-- ScrollViewer styling -->
+        <Style Selector="ScrollViewer">
+            <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
+            <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>
+            <Setter Property="AllowAutoHide" Value="True"/>
+        </Style>
+
+        <!-- TextBox styling -->
+        <Style Selector="TextBox">
+            <Setter Property="Background" Value="#333333"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="BorderBrush" Value="#404040"/>
+            <Setter Property="CornerRadius" Value="4"/>
+            <Setter Property="Padding" Value="8"/>
+        </Style>
+
+        <!-- Slider track styling -->
+        <Style Selector="Slider">
+            <Setter Property="Background" Value="#404040"/>
+            <Setter Property="Height" Value="4"/>
+        </Style>
+
+        <Style Selector="Slider:track">
+            <Setter Property="Height" Value="4"/>
+            <Setter Property="Background" Value="#404040"/>
+            <Setter Property="BorderThickness" Value="0"/>
+        </Style>
+
+        <Style Selector="Slider:filled">
+            <Setter Property="Background" Value="#007ACC"/>
         </Style>
 
         <!-- Slider Styles -->
@@ -108,5 +172,6 @@
                 </ControlTemplate>
             </Setter>
         </Style>
+
     </Application.Styles>
 </Application>
