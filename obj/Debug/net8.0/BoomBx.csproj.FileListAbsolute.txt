@@ -74,3 +74,4 @@ E:\Projects\BoomBx\BoomBx\obj\Debug\net8.0\refint\Avalonia\BoomBx.dll
 E:\Projects\BoomBx\BoomBx\obj\Debug\net8.0\BoomBx.csproj.Up2Date
 E:\Projects\BoomBx\BoomBx\obj\Debug\net8.0\BoomBx.genruntimeconfig.cache
 E:\Projects\BoomBx\BoomBx\obj\Debug\net8.0\ref\BoomBx.dll
+E:\Projects\BoomBx\BoomBx\obj\Debug\net8.0\BoomBx.sourcelink.json

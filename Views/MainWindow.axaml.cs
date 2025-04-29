@@ -24,6 +24,8 @@ using System.Text.Json;
 using System.ComponentModel;
 using BoomBx.ViewModels;
 using BoomBx.Models;
+using Avalonia.Media.Imaging;
+using Avalonia.Platform;
 
 namespace BoomBx.Views
 {
@@ -48,6 +50,17 @@ namespace BoomBx.Views
             {
                 this.Styles.Add(new FluentTheme());
                 InitializeComponent();
+                try 
+                {
+                    var uri = new Uri("avares://BoomBx/Assets/bocchi.jpg");
+                    using var stream = AssetLoader.Open(uri);
+                    var testImage = new Bitmap(stream);
+                    Console.WriteLine("Default icon loaded successfully");
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error loading default icon: {ex}");
+                }
                 DataContext = new MainWindowViewModel();
                 ((INotifyPropertyChanged)DataContext).PropertyChanged += ViewModel_PropertyChanged;
                 Console.WriteLine("[2] InitializeComponent completed");
@@ -530,7 +543,7 @@ namespace BoomBx.Views
         {
             if (ViewModel.SelectedSound == null) return;
 
-            var file = await this.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
+            var files = await this.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 Title = "Select Icon Image",
                 AllowMultiple = false,
@@ -540,11 +553,30 @@ namespace BoomBx.Views
                 }
             });
 
-            if (file.Count > 0)
+            if (files.Count > 0 && files[0].TryGetLocalPath() is string localPath)
             {
-                var path = file[0].Path.LocalPath;
-                ViewModel.SelectedSound.IconPath = path;
-                SaveSoundLibrary();
+                try
+                {
+                    var appDataDir = Path.Combine(
+                        Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                        "BoomBx",
+                        "icons");
+                    
+                    Directory.CreateDirectory(appDataDir);
+
+                    var fileName = $"{Guid.NewGuid()}{Path.GetExtension(localPath)}";
+                    var destPath = Path.Combine(appDataDir, fileName);
+
+                    File.Copy(localPath, destPath, overwrite: true);
+
+                    ViewModel.SelectedSound.IconPath = fileName;
+                    SaveSoundLibrary();
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"Error saving icon: {ex}");
+                    UpdateStatus("Failed to save icon");
+                }
             }
         }
 
@@ -570,7 +602,8 @@ namespace BoomBx.Views
 
         private void LoadSoundLibrary()
         {
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
                 "BoomBx", 
                 "sounds.json");
                 
@@ -584,6 +617,20 @@ namespace BoomBx.Views
                     ViewModel.Sounds.Clear();
                     foreach (var item in loaded)
                     {
+                        if (!item.IconPath.StartsWith("avares://"))
+                        {
+                            var iconPath = Path.Combine(
+                                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                                "BoomBx",
+                                "icons",
+                                item.IconPath);
+
+                            if (!File.Exists(iconPath))
+                            {
+                                item.IconPath = "/Assets/bocchi.jpg";
+                            }
+                        }
+                        
                         item.PropertyChanged += SoundItem_PropertyChanged;
                         ViewModel.Sounds.Add(item);
                     }

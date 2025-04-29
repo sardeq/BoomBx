@@ -14,8 +14,15 @@
 
   <ItemGroup>
     <Folder Include="Models\" />
-    <AvaloniaResource Include="Assets\**" />
+    <AvaloniaResource Include="Assets\**">
+      <Pack>true</Pack>
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </AvaloniaResource>
   </ItemGroup>
+
+  <PropertyGroup>
+  <AssemblyName>BoomBx</AssemblyName>
+</PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.1.3" />
