@@ -9,7 +9,7 @@
         x:Class="BoomBx.Views.MainWindow"
         x:DataType="vm:MainWindowViewModel"
         xmlns:model="using:BoomBx.Models"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/logo.png"
         Title="BoomBx"
         Background="#1A1A1A"
         WindowStartupLocation="CenterScreen"
@@ -45,9 +45,16 @@
 
           <Border Grid.Column="0" Background="#252525" Margin="0,0,1,0">
             <StackPanel Spacing="0">
-                <Border Padding="15" Background="#2D2D2D">
-                    <TextBlock Text="BOOMBX" FontSize="16" FontWeight="Bold" Foreground="#E0E0E0"/>
-                </Border>
+            <Border Padding="15" Background="#2D2D2D">
+                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                    <Image Source="/Assets/logo.png" Width="50" Height="50"/>
+                    <TextBlock Text="BOOMBX" 
+                            FontSize="16" 
+                            FontWeight="Bold" 
+                            Foreground="#E0E0E0"
+                            VerticalAlignment="Center"/>
+                </StackPanel>
+            </Border>
                 
                 <StackPanel Spacing="10" Margin="10">
                     <RadioButton x:Name="SoundsNav"
