@@ -11,6 +11,11 @@
     <Application.Styles>
         <FluentTheme />
 
+        <Style Selector="ListBoxItem:focus /template/ ContentPresenter">
+            <Setter Property="BorderBrush" Value="#30FFFFFF" />
+            <Setter Property="BorderThickness" Value="1" />
+        </Style>
+
         <Style Selector="RadioButton.SidebarButton">
             <Setter Property="Background" Value="Transparent"/>
             <Setter Property="BorderThickness" Value="0"/>
@@ -110,14 +115,6 @@
             <Setter Property="Background" Value="#006CBE"/>
         </Style>
 
-        <!-- Hover effects for cards -->
-        <Style Selector="Border:pointerover">
-            <Setter Property="Effect">
-                <DropShadowEffect BlurRadius="12" Color="#CC007ACC" Opacity="0.2"/>
-            </Setter>
-        </Style>
-
-        <!-- ScrollViewer styling -->
         <Style Selector="ScrollViewer">
             <Setter Property="HorizontalScrollBarVisibility" Value="Disabled"/>
             <Setter Property="VerticalScrollBarVisibility" Value="Auto"/>

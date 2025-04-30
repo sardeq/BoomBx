@@ -40,6 +40,7 @@ namespace BoomBx.Views
         private LoopStream? _loopedAudio;
         private VolumeSampleProvider? _volumeProvider;
         private SoundItem? _currentSoundSubscription;
+        private AppSettings _settings = new AppSettings();
 
         private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
 
@@ -492,12 +493,73 @@ namespace BoomBx.Views
                     PlaybackComboBox.ItemsSource = playback.Select(d => d.FriendlyName);
                     CaptureComboBox.ItemsSource = capture.Select(d => d.FriendlyName);
                     
+                    LoadDeviceSettings();
+                    
                     SelectDefaultDevices();
                 });
             }
             catch (Exception ex)
             {
                 UpdateStatus($"Device Error: {ex.Message}");
+            }
+        }
+
+        private void LoadDeviceSettings()
+        {
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
+                "BoomBx", 
+                "settings.json");
+            
+            if (File.Exists(path))
+            {
+                try
+                {
+                    var json = File.ReadAllText(path);
+                    _settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
+                }
+                catch { /* idk */ }
+            }
+
+            if (!string.IsNullOrEmpty(_settings.LastPlaybackDevice))
+            {
+                PlaybackComboBox.SelectedItem = _playbackDevices
+                    .FirstOrDefault(d => d.FriendlyName == _settings.LastPlaybackDevice)?.FriendlyName;
+            }
+            
+            if (!string.IsNullOrEmpty(_settings.LastCaptureDevice))
+            {
+                CaptureComboBox.SelectedItem = _captureDevices
+                    .FirstOrDefault(d => d.FriendlyName == _settings.LastCaptureDevice)?.FriendlyName;
+            }
+        }
+
+        private void SaveDeviceSettings()
+        {
+            var path = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
+                "BoomBx", 
+                "settings.json");
+            
+            _settings.LastPlaybackDevice = PlaybackComboBox.SelectedItem?.ToString();
+            _settings.LastCaptureDevice = CaptureComboBox.SelectedItem?.ToString();
+            
+            File.WriteAllText(path, JsonSerializer.Serialize(_settings));
+        }
+
+        public void PlaybackDeviceChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (PlaybackComboBox.SelectedIndex >= 0)
+            {
+                SaveDeviceSettings();
+            }
+        }
+
+        public void CaptureDeviceChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (CaptureComboBox.SelectedIndex >= 0)
+            {
+                SaveDeviceSettings();
             }
         }
 
@@ -645,13 +707,23 @@ namespace BoomBx.Views
 
         private void SelectDefaultDevices()
         {
-            var cableInput = _playbackDevices.FirstOrDefault(d => 
-                d.FriendlyName.Equals("CABLE Input", StringComparison.OrdinalIgnoreCase));
-            PlaybackComboBox.SelectedItem = cableInput?.FriendlyName;
+            if (string.IsNullOrEmpty(_settings.LastPlaybackDevice))
+            {
+                var cableInput = _playbackDevices.FirstOrDefault(d => 
+                    d.FriendlyName.Contains("CABLE Input", StringComparison.OrdinalIgnoreCase));
+                
+                PlaybackComboBox.SelectedItem = cableInput?.FriendlyName 
+                    ?? _playbackDevices.FirstOrDefault()?.FriendlyName;
+            }
 
-            var defaultMic = _captureDevices.FirstOrDefault(d => 
-                !d.FriendlyName.Contains("CABLE", StringComparison.OrdinalIgnoreCase));
-            CaptureComboBox.SelectedItem = defaultMic?.FriendlyName;
+            if (string.IsNullOrEmpty(_settings.LastCaptureDevice))
+            {
+                var defaultMic = _captureDevices.FirstOrDefault(d => 
+                    !d.FriendlyName.Contains("CABLE", StringComparison.OrdinalIgnoreCase));
+                
+                CaptureComboBox.SelectedItem = defaultMic?.FriendlyName 
+                    ?? _captureDevices.FirstOrDefault()?.FriendlyName;
+            }
         }
 
         public void PlayThroughDeviceHandler(object? sender, RoutedEventArgs e)

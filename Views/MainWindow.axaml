@@ -18,6 +18,22 @@
     <Window.Resources>
         <conv:UriToImageSourceConverter x:Key="UriConverter"/>
         <conv:NavigationEqualityConverter x:Key="NavigationEqualityConverter"/>
+
+        <ControlTheme x:Key="CustomListBoxItemTheme" TargetType="ListBoxItem">
+            <Setter Property="Background" Value="#1A1A1A"/>
+            <Style Selector="^:selected">
+                <Setter Property="Background" Value="#1A1A1A"/>
+            </Style>
+            <Style Selector="^:focused">
+                <Setter Property="Background" Value="#1A1A1A"/>
+            </Style>
+            <Style Selector="^:pointerover">
+                <Setter Property="Background" Value="#1A1A1A"/>
+            </Style>
+            <Style Selector="^:selected:focused">
+                <Setter Property="Background" Value="#1A1A1A"/>
+            </Style>
+        </ControlTheme>
     </Window.Resources>
 
     <Design.DataContext>
@@ -80,63 +96,63 @@
                             
                             <Border Background="#333333" CornerRadius="4">
                                 <ListBox SelectionMode="Single" ItemsSource="{Binding Sounds}"
-         SelectedItem="{Binding SelectedSound, Mode=TwoWay}"
-         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-         Background="Transparent"
-         BorderThickness="0"
-         Padding="0">
-    <ListBox.ItemsPanel>
-        <ItemsPanelTemplate>
-            <WrapPanel Orientation="Horizontal" Margin="0,0,15,0"/>
-        </ItemsPanelTemplate>
-    </ListBox.ItemsPanel>
-    <ListBox.ItemTemplate>
-        <DataTemplate DataType="model:SoundItem">
-            <Border Classes="listbox-item"
-                Width="120" 
-                Height="140" 
-                Background="#333333" 
-                CornerRadius="8"
-                Padding="10"
-                Cursor="Hand">
-                <Border.Styles>
-                    <Style Selector="Border.listbox-item">
-                        <Setter Property="BorderBrush" Value="Transparent"/>
-                        <Setter Property="BorderThickness" Value="2"/>
-                    </Style>
-                    <Style Selector="Border.listbox-item:selected">
-                        <Setter Property="BorderBrush" Value="#007ACC"/>
-                    </Style>
-                    <Style Selector="Border.listbox-item:pointerover">
-                        <Setter Property="RenderTransform">
-                            <TransformGroup>
-                                <ScaleTransform ScaleX="1.02" ScaleY="1.02"/>
-                            </TransformGroup>
-                        </Setter>
-                        <Setter Property="BorderBrush" Value="#007ACC60"/>
-                    </Style>
-                </Border.Styles>
-                <StackPanel Spacing="8" HorizontalAlignment="Center">
-                    <Border Width="80" 
-                            Height="80" 
-                            Background="#404040" 
-                            CornerRadius="4">
-                        <Image Source="{Binding IconPath, Converter={StaticResource UriConverter}}"
-                               Width="40" 
-                               Height="40"/>
-                    </Border>
-                    <TextBlock Text="{Binding Name}" 
-                               Foreground="#E0E0E0"
-                               FontSize="13"
-                               TextWrapping="Wrap"
-                               HorizontalAlignment="Center"
-                               MaxWidth="100"
-                               TextAlignment="Center"/>
-                </StackPanel>
-            </Border>
-        </DataTemplate>
-    </ListBox.ItemTemplate>
-</ListBox>
+                                        SelectedItem="{Binding SelectedSound, Mode=TwoWay}"
+                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                        Background="Transparent"
+                                        BorderThickness="0"
+                                        Padding="0"
+                                        ItemContainerTheme="{StaticResource CustomListBoxItemTheme}">
+                                    <ListBox.ItemsPanel>
+                                        <ItemsPanelTemplate>
+                                            <WrapPanel Orientation="Horizontal" Margin="0,0,15,0"/>
+                                        </ItemsPanelTemplate>
+                                    </ListBox.ItemsPanel>
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate DataType="model:SoundItem">
+                                            <Border Classes="listbox-item"
+                                                Width="120" 
+                                                Height="140" 
+                                                Background="#333333" 
+                                                CornerRadius="8"
+                                                Padding="10"
+                                                Cursor="Hand">
+                                                    <Border.Styles>
+                                                        <Style Selector="Border.listbox-item:focus">
+                                                            <Setter Property="BorderThickness" Value="1"/>
+                                                        </Style>
+                                                        <Style Selector="Border.listbox-item">
+                                                            <Setter Property="BorderBrush" Value="Transparent"/>
+                                                            <Setter Property="BorderThickness" Value="2"/>
+                                                        </Style>
+                                                        <Style Selector="Border.listbox-item:pointerover">
+                                                            <Setter Property="RenderTransform">
+                                                                <TransformGroup>
+                                                                    <ScaleTransform ScaleX="1.02" ScaleY="1.02"/>
+                                                                </TransformGroup>
+                                                            </Setter>
+                                                        </Style>
+                                                    </Border.Styles>
+                                                <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                                    <Border Width="80" 
+                                                            Height="80" 
+                                                            Background="#404040" 
+                                                            CornerRadius="4">
+                                                        <Image Source="{Binding IconPath, Converter={StaticResource UriConverter}}"
+                                                            Width="40" 
+                                                            Height="40"/>
+                                                    </Border>
+                                                    <TextBlock Text="{Binding Name}" 
+                                                            Foreground="#E0E0E0"
+                                                            FontSize="13"
+                                                            TextWrapping="Wrap"
+                                                            HorizontalAlignment="Center"
+                                                            MaxWidth="100"
+                                                            TextAlignment="Center"/>
+                                                </StackPanel>
+                                            </Border>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
                             </Border>
                         </StackPanel>
                     </StackPanel>
@@ -163,7 +179,8 @@
                                            FontWeight="Bold"/>
                                 <ComboBox x:Name="PlaybackComboBox" 
                                           Height="40" 
-                                          FontSize="14"/>
+                                          FontSize="14"
+                                          SelectionChanged="PlaybackDeviceChanged"/>
                             </StackPanel>
 
                             <StackPanel Spacing="5">
@@ -173,7 +190,8 @@
                                            FontWeight="Bold"/>
                                 <ComboBox x:Name="CaptureComboBox" 
                                           Height="40" 
-                                          FontSize="14"/>
+                                          FontSize="14"
+                                          SelectionChanged="CaptureDeviceChanged"/>
                             </StackPanel>
                         </StackPanel>
                     </StackPanel>
