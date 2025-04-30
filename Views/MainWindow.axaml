@@ -181,6 +181,7 @@
                                           Height="40" 
                                           FontSize="14"
                                           SelectionChanged="PlaybackDeviceChanged"/>
+                                          
                             </StackPanel>
 
                             <StackPanel Spacing="5">
