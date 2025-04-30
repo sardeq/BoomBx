@@ -1,11 +1,19 @@
 ﻿using BoomBx.Models;
+using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 
 namespace BoomBx.ViewModels
 {
-    public class MainWindowViewModel : INotifyPropertyChanged
+    public partial class MainWindowViewModel : ObservableObject 
     {
+        [ObservableProperty]
+        private string? _appVersion;
+
+        public MainWindowViewModel()
+        {
+            _appVersion = $"Version {AppVersionHelper.GetInformationalVersion()}";
+        }
+
         public ObservableCollection<SoundItem> Sounds { get; } = new();
 
         private SoundItem? _selectedSound;
@@ -14,31 +22,18 @@ namespace BoomBx.ViewModels
             get => _selectedSound;
             set
             {
-                if (_selectedSound != value)
+                if (SetProperty(ref _selectedSound, value))
                 {
-                    _selectedSound = value;
                     SelectedFilePath = _selectedSound?.Path ?? string.Empty;
-                    OnPropertyChanged(nameof(SelectedSound));
                 }
             }
-        }
-
-        public event PropertyChangedEventHandler? PropertyChanged;
-
-        protected virtual void OnPropertyChanged(string propertyName)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
         }
 
         private string? _selectedFilePath;
         public string? SelectedFilePath
         {
             get => _selectedFilePath;
-            private set
-            {
-                _selectedFilePath = value;
-                OnPropertyChanged(nameof(SelectedFilePath));
-            }
+            private set => SetProperty(ref _selectedFilePath, value);
         }
     }
 }

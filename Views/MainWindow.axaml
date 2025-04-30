@@ -181,7 +181,7 @@
                                           Height="40" 
                                           FontSize="14"
                                           SelectionChanged="PlaybackDeviceChanged"/>
-                                          
+
                             </StackPanel>
 
                             <StackPanel Spacing="5">
@@ -195,6 +195,12 @@
                                           SelectionChanged="CaptureDeviceChanged"/>
                             </StackPanel>
                         </StackPanel>
+
+                         <TextBlock Text="{Binding AppVersion}" 
+                            Foreground="#606060"
+                            FontSize="12"
+                            HorizontalAlignment="Center"
+                            Margin="0,20,0,0"/>
                     </StackPanel>
                 </Border>
             </StackPanel>
