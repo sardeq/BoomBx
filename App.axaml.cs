@@ -8,6 +8,9 @@ using Avalonia.Markup.Xaml;
 using BoomBx.ViewModels;
 using BoomBx.Views;
 using System.Runtime.InteropServices;
+using Avalonia.Logging;
+using Avalonia.Controls;
+using Avalonia.Threading;
 
 
 namespace BoomBx;
@@ -20,10 +23,19 @@ public partial class App : Application
     [DllImport("kernel32.dll")]
     private static extern bool AttachConsole(int pid);
 
+    public SplashScreen _splash;
+    private IClassicDesktopStyleApplicationLifetime? _desktop;
+
+
     public App()
     {
         if (!AttachConsole(-1)) AllocConsole();
-        Console.WriteLine("----- Application Starting -----");
+        _splash = new SplashScreen();
+    }
+
+    public void UpdateSplashStatus(string message)
+    {
+        _splash?.UpdateStatus(message);
     }
 
     public override void Initialize()
@@ -31,37 +43,59 @@ public partial class App : Application
         AvaloniaXamlLoader.Load(this);
     }
 
-    public override void OnFrameworkInitializationCompleted()
+    public override async void OnFrameworkInitializationCompleted()
     {
-        AppDomain.CurrentDomain.UnhandledException += (s, e) =>
+        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
-            Logger.Log($"CRASH: {e.ExceptionObject}");
-            Console.WriteLine($"CRASH: {e.ExceptionObject}");
-        };
-
-        TaskScheduler.UnobservedTaskException += (s, e) =>
-        {
-            Logger.Log($"TASK ERROR: {e.Exception}");
-            Console.WriteLine($"TASK ERROR: {e.Exception}");
-        };
+            _desktop = desktop;
+            _desktop.ShutdownMode = ShutdownMode.OnExplicitShutdown;
             
-        try
-        {
-           
-            if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+            BindingPlugins.DataValidators.RemoveAt(0);
+            
+            try
             {
-                BindingPlugins.DataValidators.RemoveAt(0);
-                desktop.MainWindow = new MainWindow();
-                desktop.Exit += OnExit;
-            }
+                _splash.Show();
+                
+                var mainWindow = new MainWindow();
+                await mainWindow.InitializeAsync();
+                
+                var tcs = new TaskCompletionSource();
+                
+                mainWindow.SetCloseSplashAction(async () => 
+                {
+                    try
+                    {
+                        Dispatcher.UIThread.Post(() => 
+                        {
+                            _desktop.MainWindow = mainWindow;
+                            mainWindow.Show();
+                        });
 
-            base.OnFrameworkInitializationCompleted();
+                        await _splash.CloseSplashAsync();
+                        
+                        await mainWindow.StartMainInitialization();
+                    }
+                    finally
+                    {
+                        tcs.SetResult();
+                    }
+                });
+
+                await mainWindow.CloseSplashAsync();
+                await tcs.Task;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Fatal startup error: {ex}");
+                throw;
+            }
         }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Fatal startup error: {ex}");
-            throw;
-        }
+        base.OnFrameworkInitializationCompleted();
+    }
+
+    private async Task InitializeMainWindowAsync(MainWindow mainWindow)
+    {
+        await Task.Delay(100);
     }
 
     private void OnExit(object? sender, ControlledApplicationLifetimeExitEventArgs e)

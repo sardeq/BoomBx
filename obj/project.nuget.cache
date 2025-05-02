@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "FEXc0mVdXtE=",
+  "dgSpecHash": "1B14w4nNIWg=",
   "success": true,
   "projectFilePath": "E:\\Projects\\BoomBx\\BoomBx\\BoomBx.csproj",
   "expectedPackageFiles": [
@@ -29,6 +29,7 @@
     "C:\\Users\\HP\\.nuget\\packages\\harfbuzzsharp.nativeassets.win32\\7.3.0.2\\harfbuzzsharp.nativeassets.win32.7.3.0.2.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\messagebox.avalonia\\3.2.0\\messagebox.avalonia.3.2.0.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\microcom.runtime\\0.11.0\\microcom.runtime.0.11.0.nupkg.sha512",
+    "C:\\Users\\HP\\.nuget\\packages\\microsoft.net.illink.tasks\\8.0.15\\microsoft.net.illink.tasks.8.0.15.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\microsoft.netcore.platforms\\3.1.0\\microsoft.netcore.platforms.3.1.0.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\microsoft.win32.registry\\4.7.0\\microsoft.win32.registry.4.7.0.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\naudio\\2.2.1\\naudio.2.2.1.nupkg.sha512",
@@ -46,7 +47,10 @@
     "C:\\Users\\HP\\.nuget\\packages\\system.numerics.vectors\\4.5.0\\system.numerics.vectors.4.5.0.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\system.security.accesscontrol\\4.7.0\\system.security.accesscontrol.4.7.0.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\system.security.principal.windows\\4.7.0\\system.security.principal.windows.4.7.0.nupkg.sha512",
-    "C:\\Users\\HP\\.nuget\\packages\\tmds.dbus.protocol\\0.16.0\\tmds.dbus.protocol.0.16.0.nupkg.sha512"
+    "C:\\Users\\HP\\.nuget\\packages\\tmds.dbus.protocol\\0.16.0\\tmds.dbus.protocol.0.16.0.nupkg.sha512",
+    "C:\\Users\\HP\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.15\\microsoft.netcore.app.runtime.win-x64.8.0.15.nupkg.sha512",
+    "C:\\Users\\HP\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.15\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.15.nupkg.sha512",
+    "C:\\Users\\HP\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.15\\microsoft.aspnetcore.app.runtime.win-x64.8.0.15.nupkg.sha512"
   ],
   "logs": []
 }

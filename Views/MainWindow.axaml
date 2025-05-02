@@ -309,6 +309,10 @@
                             Width="120"
                             Background="#404040"
                             Foreground="White"/>
+                    <TextBlock x:Name="InstallationMessageT" 
+                           VerticalAlignment="Center"
+                           Foreground="#E0E0E0"
+                           FontSize="13"/>
                 </StackPanel>
             </StackPanel>
         </Border>
@@ -336,6 +340,23 @@
                            Foreground="#E0E0E0"
                            FontSize="13"/>
                 <TextBlock x:Name="StatusMessage" 
+                           VerticalAlignment="Center"
+                           Foreground="#E0E0E0"
+                           FontSize="13"/>
+            </StackPanel>
+        </Border>
+
+        <Border x:Name="BottomContainer" Grid.ColumnSpan="3"
+                Background="#252525" 
+                Height="50"
+                VerticalAlignment="Bottom"
+                Padding="15"
+                CornerRadius="4"
+                IsVisible="True">
+            <StackPanel Orientation="Horizontal" 
+                        Spacing="15"
+                        VerticalAlignment="Center">
+                <TextBlock x:Name="StatoMessage" 
                            VerticalAlignment="Center"
                            Foreground="#E0E0E0"
                            FontSize="13"/>

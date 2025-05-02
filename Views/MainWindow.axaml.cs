@@ -33,6 +33,7 @@ namespace BoomBx.Views
     {
         private List<MMDevice> _playbackDevices = new();
         private List<MMDevice> _captureDevices = new();
+        private bool _installationDismissed;
         private IWavePlayer? _waveOut;
         private WasapiCapture? _micCapture;
         private List<Process> _activeProcesses = new();
@@ -43,34 +44,37 @@ namespace BoomBx.Views
         private AppSettings _settings = new AppSettings();
 
         private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
+        private Func<Task>? _closeSplashAction;
+
+        public void SetCloseSplashAction(Func<Task> action)
+        {
+            _closeSplashAction = action;
+        }
+
+        public async Task CloseSplashAsync()
+        {
+            if (_closeSplashAction != null)
+            {
+                await _closeSplashAction();
+            }
+        }
+
+        public new void Show()
+        {
+            if(!IsVisible)
+            {
+                Dispatcher.UIThread.Post(() => base.Show());
+            }
+        }
 
         public MainWindow()
         {
+            Console.SetOut(new SplashTextWriter());
             Console.WriteLine("[1] MainWindow constructor started");
-            try
-            {
-                this.Styles.Add(new FluentTheme());
-                InitializeComponent();
-                try 
-                {
-                    var uri = new Uri("avares://BoomBx/Assets/bocchi.jpg");
-                    using var stream = AssetLoader.Open(uri);
-                    var testImage = new Bitmap(stream);
-                    Console.WriteLine("Default icon loaded successfully");
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"Error loading default icon: {ex}");
-                }
-                DataContext = new MainWindowViewModel();
-                ((INotifyPropertyChanged)DataContext).PropertyChanged += ViewModel_PropertyChanged;
-                Console.WriteLine("[2] InitializeComponent completed");
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[ERROR] XAML Initialization failed: {ex}");
-                throw;
-            }
+            
+            this.Styles.Add(new FluentTheme());
+            InitializeComponent();
+            DataContext = new MainWindowViewModel();
             
             this.ShowInTaskbar = true;
             this.WindowState = WindowState.Normal;
@@ -78,12 +82,63 @@ namespace BoomBx.Views
             this.Opacity = 1;
             this.IsVisible = false;
             Console.WriteLine("[3] Window properties set");
+        }
 
-            Loaded += async (s, e) => 
+        public async Task InitializeAsync()
+        {
+            try
             {
-                Console.WriteLine("[4] Loaded event triggered");
-                await MainWindow_LoadedAsync();
-            };
+                Console.WriteLine("[2] Starting async initialization");
+                await LoadIconAsync();
+                await Dispatcher.UIThread.InvokeAsync(() =>
+                {
+                    if (DataContext is INotifyPropertyChanged npc)
+                    {
+                        npc.PropertyChanged += ViewModel_PropertyChanged;
+                    }
+                });
+                Console.WriteLine("[2] Async initialization complete");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Initialization failed: {ex}");
+                throw;
+            }
+        }
+
+        public async Task StartMainInitialization()
+        {
+            try
+            {
+                Console.WriteLine("[4] Starting main initialization");
+                await Dispatcher.UIThread.InvokeAsync(async () => 
+                {
+                    await MainWindow_LoadedAsync();
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[ERROR] Main initialization failed: {ex}");
+                throw;
+            }
+        }
+
+        private async Task LoadIconAsync()
+        {
+            try 
+            {
+                await Task.Run(() => 
+                {
+                    var uri = new Uri("avares://BoomBx/Assets/bocchi.jpg");
+                    using var stream = AssetLoader.Open(uri);
+                    var testImage = new Bitmap(stream);
+                    Console.WriteLine("Default icon loaded successfully");
+                });
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error loading default icon: {ex}");
+            }
         }
 
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
@@ -127,10 +182,11 @@ namespace BoomBx.Views
                     this.InvalidateMeasure();
                     this.InvalidateArrange();
                 });
+                
                 Console.WriteLine("[5] MainWindow_LoadedAsync started");
                 
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
-                var needsInstallation = await Task.Run(() => CheckVBCableInstallation());
+                var needsInstallation = !_installationDismissed && await Task.Run(() => CheckVBCableInstallation());
 
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
@@ -141,10 +197,13 @@ namespace BoomBx.Views
                         : "";
                 });
 
-                if (!needsInstallation)
-                {
-                   await LoadAudioDevicesAsync();
-                }
+                await LoadAudioDevicesAsync();
+
+                // if (!needsInstallation)
+                // {
+                //     await LoadAudioDevicesAsync();
+                // }
+
                 Console.WriteLine("[11] Initialization complete");
             }
             catch (Exception ex)
@@ -276,8 +335,9 @@ namespace BoomBx.Views
 
         private void OnExitClicked(object? sender, RoutedEventArgs e)
         {
+            _installationDismissed = true;
             InstallationPanel.IsVisible = false;
-            StatusMessage.Text = "Some features may require VB-Cable";
+            StatoMessage.Text = "Some features may require VB-Cable";
         }
 
         private void UpdateStatus(string message)
@@ -287,6 +347,7 @@ namespace BoomBx.Views
                 StatMessage.Text = message ?? string.Empty;
                 StatusMessage.Text = message ?? string.Empty;
                 ProgressStatus.Text = message ?? string.Empty;
+                InstallationMessageT.Text = message ?? string.Empty;
             });
         }
 
@@ -319,8 +380,11 @@ namespace BoomBx.Views
             {
                 ShowProgress("Preparing installer...");
                 var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                var projectRoot = Path.GetFullPath(Path.Combine(baseDir, @"..\..\..\"));
+                Console.WriteLine(baseDir);
+                var projectRoot = Path.GetFullPath(Path.Combine(baseDir, @"..\..\..\..\"));
+                Console.WriteLine(projectRoot);
                 var arch = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
+                Console.WriteLine(arch);
                 UpdateStatus($"Detected architecture: {arch}");
                 var scriptPath = Path.Combine(
                     projectRoot,
@@ -331,7 +395,7 @@ namespace BoomBx.Views
                 if (!File.Exists(scriptPath))
                 {
                     await Dispatcher.UIThread.InvokeAsync(() => 
-                        InstallationMessage.Text = $"Installer not found at: {scriptPath}");
+                        InstallationMessageT.Text = $"Installer not found at: {scriptPath}");
                     return false;
                 }
 
@@ -364,7 +428,7 @@ namespace BoomBx.Views
                 catch (Exception ex)
                 {
                     await Dispatcher.UIThread.InvokeAsync(() => 
-                        InstallationMessage.Text = $"Installation canceled: {ex.Message}");
+                        InstallationMessageT.Text = $"Installation canceled: {ex.Message}");
                     return false;
                 }
 
@@ -377,7 +441,7 @@ namespace BoomBx.Views
                     {
                         process.Kill();
                         await Dispatcher.UIThread.InvokeAsync(() => 
-                            InstallationMessage.Text = "Installation timed out");
+                            InstallationMessageT.Text = "Installation timed out");
                         return false;
                     }
                 }
@@ -387,7 +451,7 @@ namespace BoomBx.Views
                 if (process.ExitCode != 0)
                 {
                     await Dispatcher.UIThread.InvokeAsync(() => 
-                        InstallationMessage.Text = $"Failed (Code: {process.ExitCode})");
+                        InstallationMessageT.Text = $"Failed (Code: {process.ExitCode})");
                     return false;
                 }
 

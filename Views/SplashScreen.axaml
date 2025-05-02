@@ -1,0 +1,20 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="BoomBx.Views.SplashScreen"
+        Title="SplashScreen"
+        WindowStartupLocation="CenterScreen"
+        SystemDecorations="None"
+        CanResize="False"
+        Width="400" 
+        Height="400"
+        ExtendClientAreaTitleBarHeightHint="-1">
+    <Grid Background="#1A1A1A">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="20">
+            <Image Source="/Assets/logo.png" Width="200" Height="200"/>
+            <TextBlock x:Name="StatusText" 
+                       Text="Initializing..."
+                       Foreground="White"
+                       HorizontalAlignment="Center"/>
+        </StackPanel>
+    </Grid>
+</Window>
