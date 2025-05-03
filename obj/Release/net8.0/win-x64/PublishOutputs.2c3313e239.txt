@@ -1,2 +1,0 @@
-E:\Projects\BoomBx\BoomBx\bin\Release\net8.0\win-x64\publish\BoomBx.pdb
-E:\Projects\BoomBx\BoomBx\bin\Release\net8.0\win-x64\publish\BoomBx.exe
