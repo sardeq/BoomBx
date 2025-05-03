@@ -14,44 +14,55 @@ namespace BoomBx.Views
         private readonly WaveOutEvent _soundPlayer = new();
         private WaveStream? _audioFile;
         public bool IsClosed { get; private set; }
-
         private TaskCompletionSource<bool> _playbackCompleted = new();
-
+        private DateTime _startTime = DateTime.UtcNow;
 
         public SplashScreen()
         {
             InitializeComponent();
-            PlayStartupSound();
             this.WindowStartupLocation = WindowStartupLocation.CenterScreen;
             this.CanResize = false;
             this.SystemDecorations = SystemDecorations.None;
+
+            this.Opened += async (s, e) =>
+            {
+                await Task.Delay(50);
+                PlayStartupSound();
+            };
         }
 
         private void PlayStartupSound()
         {
             try
             {
+                Console.WriteLine("Attempting to play startup sound...");
                 var assembly = Assembly.GetExecutingAssembly();
                 var stream = assembly.GetManifestResourceStream("BoomBx.Assets.Sounds.vineboom.mp3");
-                
-                if (stream != null)
+
+                if (stream == null)
                 {
-                    _audioFile = new Mp3FileReader(stream);
-                    _soundPlayer.Init(_audioFile);
-                    _soundPlayer.PlaybackStopped += (sender, e) => 
-                    {
-                        _playbackCompleted.TrySetResult(true);
-                    };
-                    _soundPlayer.Play();
-                }
-                else
-                {
+                    Console.WriteLine("Sound resource not found.");
                     _playbackCompleted.TrySetResult(true);
+                    return;
                 }
+
+                Console.WriteLine("Sound stream found. Initializing audio...");
+                _audioFile = new Mp3FileReader(stream);
+                _soundPlayer.Init(_audioFile);
+
+                _soundPlayer.PlaybackStopped += (sender, e) =>
+                {
+                    Console.WriteLine($"Playback stopped. Exception: {e.Exception?.Message ?? "None"}");
+                    _playbackCompleted.TrySetResult(true);
+                };
+
+                Console.WriteLine("Starting playback...");
+                _soundPlayer.Play();
+                Console.WriteLine("Playback started successfully.");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error playing startup sound: {ex}");
+                Console.WriteLine($"Error playing sound: {ex}");
                 _playbackCompleted.TrySetResult(true);
             }
         }
@@ -73,11 +84,15 @@ namespace BoomBx.Views
             {
                 if (IsClosed) return;
                 
-                await Task.WhenAny(
-                    _playbackCompleted.Task,
-                    Task.Delay(TimeSpan.FromSeconds(5)) 
-                );
-                
+                var timeout = Task.Delay(TimeSpan.FromSeconds(5));
+                await Task.WhenAny(_playbackCompleted.Task, timeout);
+
+                var elapsed = DateTime.UtcNow - _startTime;
+                if (elapsed < TimeSpan.FromSeconds(3))
+                {
+                    await Task.Delay(TimeSpan.FromSeconds(3) - elapsed);
+                }
+
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (!IsClosed)
@@ -86,10 +101,6 @@ namespace BoomBx.Views
                         IsClosed = true;
                     }
                 });
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"Error closing splash: {ex}");
             }
             finally
             {

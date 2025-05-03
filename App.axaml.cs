@@ -65,14 +65,14 @@ public partial class App : Application
                 {
                     try
                     {
+                        await Task.Delay(100);
                         Dispatcher.UIThread.Post(() => 
                         {
                             _desktop.MainWindow = mainWindow;
+                            _desktop.ShutdownMode = ShutdownMode.OnMainWindowClose;
                             mainWindow.Show();
                         });
-
                         await _splash.CloseSplashAsync();
-                        
                         await mainWindow.StartMainInitialization();
                     }
                     finally
@@ -81,12 +81,12 @@ public partial class App : Application
                     }
                 });
 
-                await mainWindow.CloseSplashAsync();
+                await mainWindow.CloseSplashAsync(); // Trigger the close action
                 await tcs.Task;
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Fatal startup error: {ex}");
+                Console.WriteLine($"Fatal error: {ex}");
                 throw;
             }
         }

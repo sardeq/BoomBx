@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("BoomBx")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("0.1.2.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.2+fd2445b9eb62c6f82ead4790cd1cadcde5e4074d")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("0.1.2+e87c8e211540026b4180755fc47925f24be87280")]
 [assembly: System.Reflection.AssemblyProductAttribute("BoomBx")]
 [assembly: System.Reflection.AssemblyTitleAttribute("BoomBx")]
 [assembly: System.Reflection.AssemblyVersionAttribute("0.1.2.0")]
