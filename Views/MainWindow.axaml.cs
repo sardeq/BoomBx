@@ -37,12 +37,20 @@ namespace BoomBx.Views
         private List<MMDevice> _playbackDevices = new();
         private List<MMDevice> _captureDevices = new();
         private bool _installationDismissed;
-        private IWavePlayer? _waveOut;
+        //private IWavePlayer? _micWaveOut;
+        //private IWavePlayer? _audioWaveOut;
         private WasapiCapture? _micCapture;
         private List<Process> _activeProcesses = new();
         private bool _isPlaying;
-        private LoopStream? _loopedAudio;
-        private VolumeSampleProvider? _volumeProvider;
+        //private LoopStream? _loopedAudio;
+        private IWavePlayer? _audioWaveOutSpeaker;
+        //private LoopStream? _loopedAudioSpeaker;
+
+        //private VolumeSampleProvider? _volumeProvider;
+        private VolumeSampleProvider? _volumeProviderVirtual;
+        private VolumeSampleProvider? _volumeProviderSpeaker;
+        private MixingSampleProvider? _persistentMixer;
+        private IWavePlayer? _persistentOutput;
         private SoundItem? _currentSoundSubscription;
         private AppSettings _settings = new AppSettings();
 
@@ -166,10 +174,13 @@ namespace BoomBx.Views
         {
             if (e.PropertyName == nameof(SoundItem.Volume) && sender is SoundItem soundItem)
             {
-                if (_volumeProvider != null)
-                {
-                    _volumeProvider.Volume = (float)(soundItem.Volume / 100.0);
-                }
+                float newVolume = (float)(soundItem.Volume / 100.0);
+                
+                if (_volumeProviderVirtual != null)
+                    _volumeProviderVirtual.Volume = newVolume;
+                
+                if (_volumeProviderSpeaker != null)
+                    _volumeProviderSpeaker.Volume = newVolume;
             }
         }
 
@@ -596,6 +607,7 @@ namespace BoomBx.Views
             if (PlaybackComboBox.SelectedIndex >= 0)
             {
                 SaveDeviceSettings();
+                StartPersistentAudioRouting();
             }
         }
 
@@ -604,7 +616,47 @@ namespace BoomBx.Views
             if (CaptureComboBox.SelectedIndex >= 0)
             {
                 SaveDeviceSettings();
+                StartPersistentAudioRouting();
             }
+        }
+
+        private void StartPersistentAudioRouting()
+        {
+            StopPersistentAudioRouting();
+
+            if (PlaybackComboBox.SelectedIndex == -1 || CaptureComboBox.SelectedIndex == -1)
+                return;
+
+            var playbackDevice = _playbackDevices[PlaybackComboBox.SelectedIndex];
+            var captureDevice = _captureDevices[CaptureComboBox.SelectedIndex];
+
+            var targetFormat = WaveFormat.CreateIeeeFloatWaveFormat(48000, 2);
+            _persistentMixer = new MixingSampleProvider(targetFormat);
+            _persistentMixer.ReadFully = true;
+
+            _micCapture = new WasapiCapture(captureDevice);
+            var micProvider = new WaveInProvider(_micCapture);
+            var micSampleProvider = ConvertFormat(micProvider.ToSampleProvider(), targetFormat);
+            _persistentMixer.AddMixerInput(micSampleProvider);
+
+            _persistentOutput = new WasapiOut(playbackDevice, AudioClientShareMode.Shared, true, 100);
+            _persistentOutput.Init(_persistentMixer);
+            
+            _micCapture.StartRecording();
+            _persistentOutput.Play();
+        }
+
+        private void StopPersistentAudioRouting()
+        {
+            _persistentOutput?.Stop();
+            _micCapture?.StopRecording();
+            
+            _persistentOutput?.Dispose();
+            _micCapture?.Dispose();
+            
+            _persistentOutput = null;
+            _micCapture = null;
+            _persistentMixer = null;
         }
 
         public async void AddToLibrary(object? sender, RoutedEventArgs e)
@@ -787,65 +839,45 @@ namespace BoomBx.Views
         {
             StopAudioProcessing();
 
-            if (PlaybackComboBox.SelectedIndex == -1 || CaptureComboBox.SelectedIndex == -1)
+            if (string.IsNullOrEmpty(ViewModel.SelectedFilePath))
             {
-                UpdateStatus("Please select both devices");
+                UpdateStatus("No audio file selected");
                 return;
             }
-
-            if (PlaybackComboBox.SelectedIndex >= _playbackDevices.Count || 
-                CaptureComboBox.SelectedIndex >= _captureDevices.Count)
-            {
-                UpdateStatus("Invalid device selection");
-                return;
-            }
-
-            var filePath = ViewModel.SelectedFilePath;
-
-            var playbackDevice = _playbackDevices[PlaybackComboBox.SelectedIndex];
-            var captureDevice = _captureDevices[CaptureComboBox.SelectedIndex];
 
             try
             {
-                if (string.IsNullOrEmpty(filePath))
-                    throw new InvalidOperationException("No audio file selected");
-
-                WaveStream reader = Path.GetExtension(filePath).ToLower() switch
-                {
-                    ".mp3" => new Mp3FileReader(filePath),
-                    ".wav" => new WaveFileReader(filePath),
-                    _ => throw new InvalidOperationException("Unsupported file format")
-                };
-
-                _loopedAudio = new LoopStream(reader);
-                
-                _micCapture = new WasapiCapture(captureDevice);
-                var micProvider = new WaveInProvider(_micCapture);
-
+                var filePath = ViewModel.SelectedFilePath;
                 var targetFormat = WaveFormat.CreateIeeeFloatWaveFormat(48000, 2);
-                var mixer = new MixingSampleProvider(targetFormat);
-                
-                var silence = new SilenceProvider(targetFormat);
-                mixer.AddMixerInput(silence);
-                
-                var micSampleProvider = ConvertFormat(micProvider.ToSampleProvider(), targetFormat);
-                mixer.AddMixerInput(micSampleProvider);
-                
-                var audioSampleProvider = ConvertFormat(_loopedAudio.ToSampleProvider(), targetFormat);
-                _volumeProvider = new VolumeSampleProvider(audioSampleProvider);
-                if(ViewModel.SelectedSound != null)
+                float initialVolume = (float)(ViewModel.SelectedSound?.Volume ?? 100) / 100f;
+
+                // --- Virtual Cable Audio Stream ---
+                var virtualAudioStream = CreateAudioStream(filePath);
+                var virtualAudioProvider = ConvertFormat(virtualAudioStream.ToSampleProvider(), targetFormat);
+                _volumeProviderVirtual = new VolumeSampleProvider(virtualAudioProvider) 
+                    { Volume = initialVolume };
+
+                // --- Speaker Audio Stream ---
+                var speakerAudioStream = CreateAudioStream(filePath);
+                var speakerAudioProvider = ConvertFormat(speakerAudioStream.ToSampleProvider(), targetFormat);
+                _volumeProviderSpeaker = new VolumeSampleProvider(speakerAudioProvider) 
+                    { Volume = initialVolume };
+
+                // Add virtual audio to persistent mixer
+                if (_persistentMixer != null)
                 {
-                    _volumeProvider.Volume = (float)(ViewModel.SelectedSound.Volume / 100.0);
+                    _persistentMixer.AddMixerInput(_volumeProviderVirtual);
                 }
-                mixer.AddMixerInput(_volumeProvider);
 
-                _waveOut = new WasapiOut(playbackDevice, AudioClientShareMode.Shared, true, 100);
-                _waveOut.Init(mixer);
+                // Setup speaker output
+                using var enumerator = new MMDeviceEnumerator();
+                var defaultSpeaker = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia);
+                
+                _audioWaveOutSpeaker = new WasapiOut(defaultSpeaker, AudioClientShareMode.Shared, true, 100);
+                _audioWaveOutSpeaker.Init(_volumeProviderSpeaker);
+                _audioWaveOutSpeaker.Play();
 
-                _micCapture.StartRecording();
-                _waveOut.Play();
                 _isPlaying = true;
-
                 UpdateStatus($"Playing {Path.GetFileName(filePath)}");
             }
             catch (Exception ex)
@@ -856,25 +888,37 @@ namespace BoomBx.Views
             }
         }
 
+        private WaveStream CreateAudioStream(string filePath)
+        {
+            WaveStream reader = Path.GetExtension(filePath).ToLower() switch
+            {
+                ".mp3" => new Mp3FileReader(filePath),
+                ".wav" => new WaveFileReader(filePath),
+                _ => throw new InvalidOperationException("Unsupported file format")
+            };
+            return new LoopStream(reader);
+        }
+
         private void StopAudioProcessing(bool updateStatus = true)
         {
             _isPlaying = false;
 
-            _waveOut?.Stop();
-            _micCapture?.StopRecording();
-            _loopedAudio?.Dispose();
-            
-            _waveOut?.Dispose();
-            _micCapture?.Dispose();
-            
-            _waveOut = null;
-            _micCapture = null;
-            _loopedAudio = null;
-
-            if (updateStatus)
+            // Remove virtual audio from mixer
+            if (_persistentMixer != null && _volumeProviderVirtual != null)
             {
-                UpdateStatus("Playback stopped");
+                _persistentMixer.RemoveMixerInput(_volumeProviderVirtual);
             }
+
+            // Cleanup speaker output
+            _audioWaveOutSpeaker?.Stop();
+            _audioWaveOutSpeaker?.Dispose();
+            _audioWaveOutSpeaker = null;
+
+            // Cleanup audio resources
+            _volumeProviderVirtual = null;
+            _volumeProviderSpeaker = null;
+
+            if (updateStatus) UpdateStatus("Playback stopped");
         }
 
         private ISampleProvider ConvertFormat(ISampleProvider input, WaveFormat targetFormat)
@@ -893,5 +937,26 @@ namespace BoomBx.Views
 
             return input;
         }
+
+
+        //to whoever reading this, i will clean up and optimize i promise
+        private void OpenGitHub(object? sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://github.com/sardeq",
+                UseShellExecute = true
+            });
+        }
+
+        private void OpenTrello(object? sender, RoutedEventArgs e)
+        {
+            Process.Start(new ProcessStartInfo
+            {
+                FileName = "https://trello.com/b/74PesGFa/boombx",
+                UseShellExecute = true
+            });
+        }
+
     }
 }

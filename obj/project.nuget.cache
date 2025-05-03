@@ -1,19 +1,23 @@
 {
   "version": 2,
-  "dgSpecHash": "deOeez07nqA=",
+  "dgSpecHash": "1B14w4nNIWg=",
   "success": true,
   "projectFilePath": "E:\\Projects\\BoomBx\\BoomBx\\BoomBx.csproj",
   "expectedPackageFiles": [
     "C:\\Users\\HP\\.nuget\\packages\\avalonia\\11.1.3\\avalonia.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.angle.windows.natives\\2.1.22045.20230930\\avalonia.angle.windows.natives.2.1.22045.20230930.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.buildservices\\0.0.29\\avalonia.buildservices.0.0.29.nupkg.sha512",
+    "C:\\Users\\HP\\.nuget\\packages\\avalonia.controls.colorpicker\\11.1.3\\avalonia.controls.colorpicker.11.1.3.nupkg.sha512",
+    "C:\\Users\\HP\\.nuget\\packages\\avalonia.controls.datagrid\\11.1.3\\avalonia.controls.datagrid.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.desktop\\11.1.3\\avalonia.desktop.11.1.3.nupkg.sha512",
+    "C:\\Users\\HP\\.nuget\\packages\\avalonia.diagnostics\\11.1.3\\avalonia.diagnostics.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.fonts.inter\\11.1.3\\avalonia.fonts.inter.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.freedesktop\\11.1.3\\avalonia.freedesktop.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.native\\11.1.3\\avalonia.native.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.remote.protocol\\11.1.3\\avalonia.remote.protocol.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.skia\\11.1.3\\avalonia.skia.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.themes.fluent\\11.1.3\\avalonia.themes.fluent.11.1.3.nupkg.sha512",
+    "C:\\Users\\HP\\.nuget\\packages\\avalonia.themes.simple\\11.1.3\\avalonia.themes.simple.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.win32\\11.1.3\\avalonia.win32.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\avalonia.x11\\11.1.3\\avalonia.x11.11.1.3.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\communitytoolkit.mvvm\\8.2.1\\communitytoolkit.mvvm.8.2.1.nupkg.sha512",
@@ -44,9 +48,9 @@
     "C:\\Users\\HP\\.nuget\\packages\\system.security.accesscontrol\\4.7.0\\system.security.accesscontrol.4.7.0.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\system.security.principal.windows\\4.7.0\\system.security.principal.windows.4.7.0.nupkg.sha512",
     "C:\\Users\\HP\\.nuget\\packages\\tmds.dbus.protocol\\0.16.0\\tmds.dbus.protocol.0.16.0.nupkg.sha512",
-    "C:\\Users\\HP\\.nuget\\packages\\microsoft.netcore.app.runtime.linux-x64\\8.0.15\\microsoft.netcore.app.runtime.linux-x64.8.0.15.nupkg.sha512",
-    "C:\\Users\\HP\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.linux-x64\\8.0.15\\microsoft.aspnetcore.app.runtime.linux-x64.8.0.15.nupkg.sha512",
-    "C:\\Users\\HP\\.nuget\\packages\\microsoft.netcore.app.host.linux-x64\\8.0.15\\microsoft.netcore.app.host.linux-x64.8.0.15.nupkg.sha512"
+    "C:\\Users\\HP\\.nuget\\packages\\microsoft.netcore.app.runtime.win-x64\\8.0.15\\microsoft.netcore.app.runtime.win-x64.8.0.15.nupkg.sha512",
+    "C:\\Users\\HP\\.nuget\\packages\\microsoft.windowsdesktop.app.runtime.win-x64\\8.0.15\\microsoft.windowsdesktop.app.runtime.win-x64.8.0.15.nupkg.sha512",
+    "C:\\Users\\HP\\.nuget\\packages\\microsoft.aspnetcore.app.runtime.win-x64\\8.0.15\\microsoft.aspnetcore.app.runtime.win-x64.8.0.15.nupkg.sha512"
   ],
   "logs": []
 }
