@@ -24,7 +24,7 @@
 BoomBx is a cross-platform audio routing tool designed for content creators, streamers, and having fun with your friends. Easily play sounds through a virtual microphones with one-click simplicity.
 
 ## ❓How to use
-## If you want to play audio through your microphone to your friends in a game or discord do the following:
+# If you want to play audio through your microphone to your friends in a game or discord do the following:
 - Make sure you have VB-Cable installed (BoomBx will prompt to install it for you).
 - After you have restarted your device, Go to settings make sure CABLE Input is set to playback device and your microphone as microphone input
 - Set your input in your game/discord to Cable OUTPUT
