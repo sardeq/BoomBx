@@ -26,6 +26,9 @@ using BoomBx.ViewModels;
 using BoomBx.Models;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
+using System.Reflection;
+using System.Text;
+using Avalonia.Media;
 
 namespace BoomBx.Views
 {
@@ -280,21 +283,11 @@ namespace BoomBx.Views
             try
             {
                 installButton.IsEnabled = false;
+                StatoMessage.Text = string.Empty;
                 ShowProgress("Starting installation...");
                 InstallationPanel.IsVisible = false;
 
                 var success = await RunInstallerAsync();
-
-                if (success)
-                {
-                    ShowProgress("Finalizing installation...");
-                    await Task.Delay(2000);
-                    for (int i = 0; i < 5; i++)
-                    {
-                        if (!CheckVBCableInstallation()) break;
-                        await Task.Delay(1000);
-                    }
-                }
 
                 await Dispatcher.UIThread.InvokeAsync(async() =>
                 {
@@ -304,22 +297,14 @@ namespace BoomBx.Views
                     if (success)
                     {
                         await LoadAudioDevicesAsync();
-                        UpdateStatus("Installation completed successfully!");
-                    }
-                    else
-                    {
-                        UpdateStatus("Installation failed - check temp folder for logs");
                     }
                 });
 
-                if (CheckVBCableInstallation())
+                if (!success && CheckVBCableInstallation())
                 {
-                    UpdateStatus("Installation failed - please try manually");
-                    return;
+                    await LoadAudioDevicesAsync();
+                    UpdateStatus("Manual installation required - Download from vb-audio.com", true);
                 }
-
-                await ShowMainUI();
-                await LoadAudioDevicesAsync();
             }
             catch (Exception ex)
             {
@@ -340,7 +325,7 @@ namespace BoomBx.Views
             StatoMessage.Text = "Some features may require VB-Cable";
         }
 
-        private void UpdateStatus(string message)
+        private void UpdateStatus(string message, bool isError = false)
         {
             Dispatcher.UIThread.Post(() =>
             {
@@ -348,6 +333,21 @@ namespace BoomBx.Views
                 StatusMessage.Text = message ?? string.Empty;
                 ProgressStatus.Text = message ?? string.Empty;
                 InstallationMessageT.Text = message ?? string.Empty;
+
+                StatoMessage.Text = message ?? string.Empty;
+                StatoMessage.Foreground = isError 
+                    ? new SolidColorBrush(Colors.OrangeRed) 
+                    : new SolidColorBrush(Colors.LightGray);
+                
+                if (!isError)
+                {
+                    Task.Delay(5000).ContinueWith(_ => 
+                        Dispatcher.UIThread.Post(() => 
+                        {
+                            if (StatoMessage.Text == message)
+                                StatoMessage.Text = string.Empty;
+                        }));
+                }
             });
         }
 
@@ -376,124 +376,104 @@ namespace BoomBx.Views
 
         private async Task<bool> RunInstallerAsync()
         {
+            string tempDir = "";
+            string logPath = Path.Combine(Path.GetTempPath(), "vb_cable_install.log");
+            
             try
             {
                 ShowProgress("Preparing installer...");
-                var baseDir = AppDomain.CurrentDomain.BaseDirectory;
-                Console.WriteLine(baseDir);
-                var projectRoot = Path.GetFullPath(Path.Combine(baseDir, @"..\..\..\..\"));
-                Console.WriteLine(projectRoot);
-                var arch = RuntimeInformation.ProcessArchitecture.ToString().ToLower();
-                Console.WriteLine(arch);
-                UpdateStatus($"Detected architecture: {arch}");
-                var scriptPath = Path.Combine(
-                    projectRoot,
-                    "InstallScripts",
-                    "InstallVBCable.bat"
-                );
+                UpdateStatus("Starting VB-Cable installation...");
+                
+                if (File.Exists(logPath)) File.Delete(logPath);
 
-                if (!File.Exists(scriptPath))
+                var assembly = Assembly.GetExecutingAssembly();
+                const string resourceName = "BoomBx.InstallScripts.InstallVBCable.bat";
+                
+                using var stream = assembly.GetManifestResourceStream(resourceName);
+                if (stream == null)
                 {
-                    await Dispatcher.UIThread.InvokeAsync(() => 
-                        InstallationMessageT.Text = $"Installer not found at: {scriptPath}");
+                    UpdateStatus("Error: Missing installation components", true);
                     return false;
                 }
 
-                var tcs = new TaskCompletionSource<bool>();
+                tempDir = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString());
+                Directory.CreateDirectory(tempDir);
+                var scriptPath = Path.Combine(tempDir, "InstallVBCable.bat");
+
+                await using (var fileStream = File.Create(scriptPath))
+                {
+                    await stream.CopyToAsync(fileStream);
+                }
+
                 var processInfo = new ProcessStartInfo
                 {
                     FileName = "cmd.exe",
                     Arguments = $"/c \"{scriptPath}\"",
                     Verb = "runas",
-                    UseShellExecute = true,
+                    UseShellExecute = true, // Required for admin elevation
                     WindowStyle = ProcessWindowStyle.Normal,
-                    WorkingDirectory = Path.GetDirectoryName(scriptPath)
+                    WorkingDirectory = tempDir
                 };
 
-                var process = new Process { StartInfo = processInfo };
-                process.EnableRaisingEvents = true;
-                process.Exited += (s, e) =>
-                {
-                    tcs.TrySetResult(true);
-                };
-
-                var logPath = Path.Combine(Path.GetTempPath(), "vb_cable_install.log");
-                Console.WriteLine($"Expecting log file at: {logPath}");
-
+                using var process = new Process { StartInfo = processInfo };
+                
                 try
                 {
                     process.Start();
-                    _activeProcesses.Add(process);
                 }
                 catch (Exception ex)
                 {
-                    await Dispatcher.UIThread.InvokeAsync(() => 
-                        InstallationMessageT.Text = $"Installation canceled: {ex.Message}");
+                    UpdateStatus($"Installation failed: {ex.Message}", true);
                     return false;
                 }
 
-                var timeoutTask = Task.Delay(120000);
-                var completedTask = await Task.WhenAny(tcs.Task, timeoutTask);
-
-                if (completedTask == timeoutTask)
+                var timeout = TimeSpan.FromMinutes(3);
+                if (!process.WaitForExit((int)timeout.TotalMilliseconds))
                 {
-                    if (!process.HasExited)
-                    {
-                        process.Kill();
-                        await Dispatcher.UIThread.InvokeAsync(() => 
-                            InstallationMessageT.Text = "Installation timed out");
-                        return false;
-                    }
+                    process.Kill();
+                    UpdateStatus("Installation timed out - Please try again", true);
+                    return false;
                 }
-
-                _activeProcesses.Remove(process);
 
                 if (process.ExitCode != 0)
                 {
-                    await Dispatcher.UIThread.InvokeAsync(() => 
-                        InstallationMessageT.Text = $"Failed (Code: {process.ExitCode})");
+                    var errorMessage = process.ExitCode switch
+                    {
+                        1 => "Download failed - Check internet connection",
+                        2 => "File extraction failed - Antivirus might be blocking",
+                        3 => "Driver installation failed - Run as Administrator",
+                        _ => $"Installation error (Code: {process.ExitCode})"
+                    };
+                    
+                    UpdateStatus(errorMessage, true);
                     return false;
                 }
 
-                if (File.Exists(logPath))
+                for (int i = 0; i < 10; i++)
                 {
-                    var logContent = await File.ReadAllTextAsync(logPath);
-                    Console.WriteLine("Installation log:\n" + logContent);
-                    File.Delete(logPath);
-                }
-
-                await Dispatcher.UIThread.InvokeAsync(async() =>
-                {
-                    await LoadAudioDevicesAsync();
-                    InstallationMessage.Text = "Installation complete!";
-                });
-
-                if (arch.Contains("64"))
-                {
-                    var x64Installed = CheckDriverPresence("VBCABLE_Setup_x64.exe");
-                    if (!x64Installed)
+                    if (!CheckVBCableInstallation()) 
                     {
-                        Logger.Log("64-bit installation verification failed");
-                        return false;
+                        await Task.Delay(1000);
+                        continue;
                     }
-                }
-                else
-                {
-                    var x86Installed = CheckDriverPresence("VBCABLE_Setup.exe");
-                    if (!x86Installed)
-                    {
-                        Logger.Log("32-bit installation verification failed");
-                        return false;
-                    }
+                    
+                    UpdateStatus("VB-Cable installed successfully!");
+                    return true;
                 }
 
-                return true;
+                UpdateStatus("Installation completed but verification failed", true);
+                return false;
             }
             catch (Exception ex)
             {
-                await Dispatcher.UIThread.InvokeAsync(() => 
-                    InstallationMessage.Text = $"Error: {ex.Message}".Trim());
+                UpdateStatus($"Critical error: {ex.Message}", true);
                 return false;
+            }
+            finally
+            {
+                try { if (Directory.Exists(tempDir)) Directory.Delete(tempDir, true); }
+                catch { /* Ignore cleanup errors */ }
+                HideProgress();
             }
         }
 

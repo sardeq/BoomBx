@@ -309,11 +309,16 @@
                             Width="120"
                             Background="#404040"
                             Foreground="White"/>
+                </StackPanel>
+                <TextBlock x:Name="InstallationMessageT1" 
+                           VerticalAlignment="Center"
+                           Foreground="#E0E0E0"
+                           FontSize="13"
+                           Text="It appears you don't have VB-Cable, some functionalities may not work."/>
                     <TextBlock x:Name="InstallationMessageT" 
                            VerticalAlignment="Center"
                            Foreground="#E0E0E0"
                            FontSize="13"/>
-                </StackPanel>
             </StackPanel>
         </Border>
 

@@ -28,8 +28,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-  <EmbeddedResource Include="Assets\Sounds\vineboom.mp3" />
-</ItemGroup>
+    <EmbeddedResource Include="Assets\Sounds\vineboom.mp3" />
+    <EmbeddedResource Include="InstallScripts\InstallVBCable.bat" />
+  </ItemGroup>
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**">

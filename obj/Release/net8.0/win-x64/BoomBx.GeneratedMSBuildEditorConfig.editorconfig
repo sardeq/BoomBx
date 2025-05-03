@@ -28,3 +28,6 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [E:/Projects/BoomBx/BoomBx/Views/MainWindow.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[E:/Projects/BoomBx/BoomBx/Views/SplashScreen.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
