@@ -21,7 +21,7 @@
 
 ## 🎯 What is BoomBx?
 
-BoomBx is a cross-platform audio routing tool designed for content creators, streamers, and having fun with your friends. Easily play sounds through a virtual microphones with one-click simplicity. Perfect for streaming setups, voice changers, and professional audio configurations.
+BoomBx is a cross-platform audio routing tool designed for content creators, streamers, and having fun with your friends. Easily play sounds through a virtual microphones with one-click simplicity.
 
 ## ✨ Key Features
 
