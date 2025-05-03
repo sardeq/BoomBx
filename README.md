@@ -13,7 +13,7 @@
 
 <div align="center">
 
-[![Download](https://img.shields.io/badge/Download-v0.1.2-%23007ACC?style=for-the-badge&logo=github)](https://github.com/sardeq/BoomBx/releases/latest)
+[![Download](https://img.shields.io/badge/Download-v0.1.3-%23007ACC?style=for-the-badge&logo=github)](https://github.com/sardeq/BoomBx/releases/latest)
   
 </div>
 
@@ -24,13 +24,11 @@
 BoomBx is a cross-platform audio routing tool designed for content creators, streamers, and having fun with your friends. Easily play sounds through a virtual microphones with one-click simplicity.
 
 ## ❓How to use
-## If you want to play audio through your microphone to your friends in a game or discord do the following:
+If you want to play audio through your microphone to your friends in a game or discord do the following:
 - Make sure you have VB-Cable installed (BoomBx will prompt to install it for you).
 - After you have restarted your device, Go to settings make sure CABLE Input is set to playback device and your microphone as microphone input
 - Set your input in your game/discord to Cable OUTPUT
 - Add your own audios and Play them!
-## Your friends will definitely hear it but lets say you want to hear them as well, go to sound properties, navigate to Cable OUTPUT under Recording, Go to it's properties then go to Listen then check Listen to this device.
-> Note this step won't be necassary in the next version this is just a quick fix for it.
 
 ## ✨ Key Features
 
