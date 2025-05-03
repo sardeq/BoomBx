@@ -107,40 +107,6 @@
           "buildTransitive/Avalonia.BuildServices.targets": {}
         }
       },
-      "Avalonia.Controls.ColorPicker/11.1.3": {
-        "type": "package",
-        "dependencies": {
-          "Avalonia": "11.1.3",
-          "Avalonia.Remote.Protocol": "11.1.3"
-        },
-        "compile": {
-          "lib/net8.0/Avalonia.Controls.ColorPicker.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/Avalonia.Controls.ColorPicker.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "Avalonia.Controls.DataGrid/11.1.3": {
-        "type": "package",
-        "dependencies": {
-          "Avalonia": "11.1.3",
-          "Avalonia.Remote.Protocol": "11.1.3"
-        },
-        "compile": {
-          "lib/net8.0/Avalonia.Controls.DataGrid.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/Avalonia.Controls.DataGrid.dll": {
-            "related": ".xml"
-          }
-        }
-      },
       "Avalonia.Desktop/11.1.3": {
         "type": "package",
         "dependencies": {
@@ -157,25 +123,6 @@
         },
         "runtime": {
           "lib/net8.0/Avalonia.Desktop.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "Avalonia.Diagnostics/11.1.3": {
-        "type": "package",
-        "dependencies": {
-          "Avalonia": "11.1.3",
-          "Avalonia.Controls.ColorPicker": "11.1.3",
-          "Avalonia.Controls.DataGrid": "11.1.3",
-          "Avalonia.Themes.Simple": "11.1.3"
-        },
-        "compile": {
-          "lib/net8.0/Avalonia.Diagnostics.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/Avalonia.Diagnostics.dll": {
             "related": ".xml"
           }
         }
@@ -282,22 +229,6 @@
         },
         "runtime": {
           "lib/net8.0/Avalonia.Themes.Fluent.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "Avalonia.Themes.Simple/11.1.3": {
-        "type": "package",
-        "dependencies": {
-          "Avalonia": "11.1.3"
-        },
-        "compile": {
-          "lib/net8.0/Avalonia.Themes.Simple.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/Avalonia.Themes.Simple.dll": {
             "related": ".xml"
           }
         }
@@ -813,7 +744,7 @@
         }
       }
     },
-    "net8.0/win-x64": {
+    "net8.0/linux-x64": {
       "Avalonia/11.1.3": {
         "type": "package",
         "dependencies": {
@@ -897,49 +828,12 @@
         }
       },
       "Avalonia.Angle.Windows.Natives/2.1.22045.20230930": {
-        "type": "package",
-        "native": {
-          "runtimes/win-x64/native/av_libglesv2.dll": {}
-        }
+        "type": "package"
       },
       "Avalonia.BuildServices/0.0.29": {
         "type": "package",
         "build": {
           "buildTransitive/Avalonia.BuildServices.targets": {}
-        }
-      },
-      "Avalonia.Controls.ColorPicker/11.1.3": {
-        "type": "package",
-        "dependencies": {
-          "Avalonia": "11.1.3",
-          "Avalonia.Remote.Protocol": "11.1.3"
-        },
-        "compile": {
-          "lib/net8.0/Avalonia.Controls.ColorPicker.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/Avalonia.Controls.ColorPicker.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "Avalonia.Controls.DataGrid/11.1.3": {
-        "type": "package",
-        "dependencies": {
-          "Avalonia": "11.1.3",
-          "Avalonia.Remote.Protocol": "11.1.3"
-        },
-        "compile": {
-          "lib/net8.0/Avalonia.Controls.DataGrid.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/Avalonia.Controls.DataGrid.dll": {
-            "related": ".xml"
-          }
         }
       },
       "Avalonia.Desktop/11.1.3": {
@@ -958,25 +852,6 @@
         },
         "runtime": {
           "lib/net8.0/Avalonia.Desktop.dll": {
-            "related": ".xml"
-          }
-        }
-      },
-      "Avalonia.Diagnostics/11.1.3": {
-        "type": "package",
-        "dependencies": {
-          "Avalonia": "11.1.3",
-          "Avalonia.Controls.ColorPicker": "11.1.3",
-          "Avalonia.Controls.DataGrid": "11.1.3",
-          "Avalonia.Themes.Simple": "11.1.3"
-        },
-        "compile": {
-          "lib/net8.0/Avalonia.Diagnostics.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/Avalonia.Diagnostics.dll": {
             "related": ".xml"
           }
         }
@@ -1081,22 +956,6 @@
           }
         }
       },
-      "Avalonia.Themes.Simple/11.1.3": {
-        "type": "package",
-        "dependencies": {
-          "Avalonia": "11.1.3"
-        },
-        "compile": {
-          "lib/net8.0/Avalonia.Themes.Simple.dll": {
-            "related": ".xml"
-          }
-        },
-        "runtime": {
-          "lib/net8.0/Avalonia.Themes.Simple.dll": {
-            "related": ".xml"
-          }
-        }
-      },
       "Avalonia.Win32/11.1.3": {
         "type": "package",
         "dependencies": {
@@ -1192,6 +1051,9 @@
         },
         "runtime": {
           "lib/net6.0/_._": {}
+        },
+        "native": {
+          "runtimes/linux-x64/native/libHarfBuzzSharp.so": {}
         }
       },
       "HarfBuzzSharp.NativeAssets.macOS/7.3.0.2": {
@@ -1223,9 +1085,6 @@
         },
         "runtime": {
           "lib/net6.0/_._": {}
-        },
-        "native": {
-          "runtimes/win-x64/native/libHarfBuzzSharp.dll": {}
         }
       },
       "MessageBox.Avalonia/3.2.0": {
@@ -1277,7 +1136,7 @@
           }
         },
         "runtime": {
-          "runtimes/win/lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
+          "runtimes/unix/lib/netstandard2.0/Microsoft.Win32.Registry.dll": {
             "related": ".xml"
           }
         }
@@ -1408,6 +1267,9 @@
         },
         "runtime": {
           "lib/net6.0/_._": {}
+        },
+        "native": {
+          "runtimes/linux-x64/native/libSkiaSharp.so": {}
         }
       },
       "SkiaSharp.NativeAssets.macOS/2.88.8": {
@@ -1439,9 +1301,6 @@
         },
         "runtime": {
           "lib/net6.0/_._": {}
-        },
-        "native": {
-          "runtimes/win-x64/native/libSkiaSharp.dll": {}
         }
       },
       "System.IO.Pipelines/6.0.0": {
@@ -1481,7 +1340,7 @@
           }
         },
         "runtime": {
-          "runtimes/win/lib/netcoreapp2.0/System.Security.AccessControl.dll": {
+          "lib/netstandard2.0/System.Security.AccessControl.dll": {
             "related": ".xml"
           }
         }
@@ -1494,7 +1353,7 @@
           }
         },
         "runtime": {
-          "runtimes/win/lib/netcoreapp2.1/System.Security.Principal.Windows.dll": {
+          "runtimes/unix/lib/netcoreapp2.1/System.Security.Principal.Windows.dll": {
             "related": ".xml"
           }
         }
@@ -1714,42 +1573,6 @@
         "tools/netstandard2.0/runtimeconfig.json"
       ]
     },
-    "Avalonia.Controls.ColorPicker/11.1.3": {
-      "sha512": "xhFYsnGUz/9O9X0iNzpNg1S1D3D5RdeYmF7T9jgAeGme6gY76tFJCYSWozzvtTKhLLXgpj8v2bTnIxd2DBIH9w==",
-      "type": "package",
-      "path": "avalonia.controls.colorpicker/11.1.3",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "Icon.png",
-        "avalonia.controls.colorpicker.11.1.3.nupkg.sha512",
-        "avalonia.controls.colorpicker.nuspec",
-        "lib/net6.0/Avalonia.Controls.ColorPicker.dll",
-        "lib/net6.0/Avalonia.Controls.ColorPicker.xml",
-        "lib/net8.0/Avalonia.Controls.ColorPicker.dll",
-        "lib/net8.0/Avalonia.Controls.ColorPicker.xml",
-        "lib/netstandard2.0/Avalonia.Controls.ColorPicker.dll",
-        "lib/netstandard2.0/Avalonia.Controls.ColorPicker.xml"
-      ]
-    },
-    "Avalonia.Controls.DataGrid/11.1.3": {
-      "sha512": "Ypqjb74jzhxAYGW6DumBvJaxOsB1IB5XcXHL5KfhgkvMZ5aW3ol3q7IBwScBvkffo2wgYaVvxkwyaDEuyjlrmQ==",
-      "type": "package",
-      "path": "avalonia.controls.datagrid/11.1.3",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "Icon.png",
-        "avalonia.controls.datagrid.11.1.3.nupkg.sha512",
-        "avalonia.controls.datagrid.nuspec",
-        "lib/net6.0/Avalonia.Controls.DataGrid.dll",
-        "lib/net6.0/Avalonia.Controls.DataGrid.xml",
-        "lib/net8.0/Avalonia.Controls.DataGrid.dll",
-        "lib/net8.0/Avalonia.Controls.DataGrid.xml",
-        "lib/netstandard2.0/Avalonia.Controls.DataGrid.dll",
-        "lib/netstandard2.0/Avalonia.Controls.DataGrid.xml"
-      ]
-    },
     "Avalonia.Desktop/11.1.3": {
       "sha512": "GwvshQIXyka+JUmmAtwLSRnpSJZUIxcrV0XeV3secwnbRzl6ekwFEChAxbKFjte177eA76E/SI/425AWZEL6/w==",
       "type": "package",
@@ -1766,24 +1589,6 @@
         "lib/net8.0/Avalonia.Desktop.xml",
         "lib/netstandard2.0/Avalonia.Desktop.dll",
         "lib/netstandard2.0/Avalonia.Desktop.xml"
-      ]
-    },
-    "Avalonia.Diagnostics/11.1.3": {
-      "sha512": "1oJQivGbnBJL2a1TpQEt5jfvdn5+iclDdRn6JzPu54oPHv48iTnulT6mlKPTe4L9JX/bUjJsxhZxcyTh6dhhqQ==",
-      "type": "package",
-      "path": "avalonia.diagnostics/11.1.3",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "Icon.png",
-        "avalonia.diagnostics.11.1.3.nupkg.sha512",
-        "avalonia.diagnostics.nuspec",
-        "lib/net6.0/Avalonia.Diagnostics.dll",
-        "lib/net6.0/Avalonia.Diagnostics.xml",
-        "lib/net8.0/Avalonia.Diagnostics.dll",
-        "lib/net8.0/Avalonia.Diagnostics.xml",
-        "lib/netstandard2.0/Avalonia.Diagnostics.dll",
-        "lib/netstandard2.0/Avalonia.Diagnostics.xml"
       ]
     },
     "Avalonia.Fonts.Inter/11.1.3": {
@@ -1893,24 +1698,6 @@
         "lib/net8.0/Avalonia.Themes.Fluent.xml",
         "lib/netstandard2.0/Avalonia.Themes.Fluent.dll",
         "lib/netstandard2.0/Avalonia.Themes.Fluent.xml"
-      ]
-    },
-    "Avalonia.Themes.Simple/11.1.3": {
-      "sha512": "R/bLBXRzcKiDqq6unUL9zHsPFrnJezj4hK2+6hDtmRnd+JEHizEV/aK/fotP//0WROYFz23fJqH0SG0BOlXX6w==",
-      "type": "package",
-      "path": "avalonia.themes.simple/11.1.3",
-      "files": [
-        ".nupkg.metadata",
-        ".signature.p7s",
-        "Icon.png",
-        "avalonia.themes.simple.11.1.3.nupkg.sha512",
-        "avalonia.themes.simple.nuspec",
-        "lib/net6.0/Avalonia.Themes.Simple.dll",
-        "lib/net6.0/Avalonia.Themes.Simple.xml",
-        "lib/net8.0/Avalonia.Themes.Simple.dll",
-        "lib/net8.0/Avalonia.Themes.Simple.xml",
-        "lib/netstandard2.0/Avalonia.Themes.Simple.dll",
-        "lib/netstandard2.0/Avalonia.Themes.Simple.xml"
       ]
     },
     "Avalonia.Win32/11.1.3": {
@@ -2765,7 +2552,6 @@
     "net8.0": [
       "Avalonia >= 11.1.3",
       "Avalonia.Desktop >= 11.1.3",
-      "Avalonia.Diagnostics >= 11.1.3",
       "Avalonia.Fonts.Inter >= 11.1.3",
       "Avalonia.Themes.Fluent >= 11.1.3",
       "CommunityToolkit.Mvvm >= 8.2.1",
@@ -2827,10 +2613,6 @@
             "target": "Package",
             "version": "[11.1.3, )"
           },
-          "Avalonia.Diagnostics": {
-            "target": "Package",
-            "version": "[11.1.3, )"
-          },
           "Avalonia.Fonts.Inter": {
             "target": "Package",
             "version": "[11.1.3, )"
@@ -2871,15 +2653,15 @@
         "warn": true,
         "downloadDependencies": [
           {
-            "name": "Microsoft.AspNetCore.App.Runtime.win-x64",
+            "name": "Microsoft.AspNetCore.App.Runtime.linux-x64",
             "version": "[8.0.15, 8.0.15]"
           },
           {
-            "name": "Microsoft.NETCore.App.Runtime.win-x64",
+            "name": "Microsoft.NETCore.App.Host.linux-x64",
             "version": "[8.0.15, 8.0.15]"
           },
           {
-            "name": "Microsoft.WindowsDesktop.App.Runtime.win-x64",
+            "name": "Microsoft.NETCore.App.Runtime.linux-x64",
             "version": "[8.0.15, 8.0.15]"
           }
         ],
@@ -2892,7 +2674,7 @@
       }
     },
     "runtimes": {
-      "win-x64": {
+      "linux-x64": {
         "#import": []
       }
     }

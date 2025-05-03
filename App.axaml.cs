@@ -17,11 +17,11 @@ namespace BoomBx;
 
 public partial class App : Application
 {
-    [DllImport("kernel32.dll")]
-    private static extern bool AllocConsole();
+    // [DllImport("kernel32.dll")]
+    // private static extern bool AllocConsole();
 
-    [DllImport("kernel32.dll")]
-    private static extern bool AttachConsole(int pid);
+    // [DllImport("kernel32.dll")]
+    // private static extern bool AttachConsole(int pid);
 
     public SplashScreen _splash;
     private IClassicDesktopStyleApplicationLifetime? _desktop;
@@ -29,7 +29,7 @@ public partial class App : Application
 
     public App()
     {
-        if (!AttachConsole(-1)) AllocConsole();
+        //if (!AttachConsole(-1)) AllocConsole();
         _splash = new SplashScreen();
     }
 
