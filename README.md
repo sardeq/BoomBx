@@ -17,7 +17,7 @@
   
 </div>
 
-<div align="center">
+<div>
 
 ## 🎯 What is BoomBx?
 
