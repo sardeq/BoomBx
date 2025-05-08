@@ -4,6 +4,7 @@ namespace BoomBx.Views
     {
         Sounds,
         TextToSpeech,
+        VoiceChanger,
         Settings
     }
 }

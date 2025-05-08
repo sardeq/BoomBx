@@ -70,6 +70,12 @@
                                 Classes="SidebarButton"
                                 Tag="{x:Static views:NavigationItem.TextToSpeech}"/>
                     
+                    <RadioButton x:Name="VoiceChangerNav"
+                                GroupName="Nav"
+                                Content="Voice Changer"
+                                Classes="SidebarButton"
+                                Tag="{x:Static views:NavigationItem.VoiceChanger}"/>
+                    
                     <RadioButton x:Name="SettingsNav"
                                 GroupName="Nav"
                                 Content="Settings"
@@ -168,6 +174,13 @@
                 <Border Background="#2D2D2D" CornerRadius="8" Padding="25"
                         IsVisible="{Binding #TextToSpeechNav.IsChecked}">
                     <TextBlock Text="Text-to-Speech (Coming Soon)" 
+                               Foreground="#A0A0A0" FontSize="16"
+                               HorizontalAlignment="Center"/>
+                </Border>
+
+                <Border Background="#2D2D2D" CornerRadius="8" Padding="25"
+                        IsVisible="{Binding #VoiceChangerNav.IsChecked}">
+                    <TextBlock Text="AI Voice Changer (Coming Soon)" 
                                Foreground="#A0A0A0" FontSize="16"
                                HorizontalAlignment="Center"/>
                 </Border>
@@ -277,14 +290,29 @@
                                 Background="#007ACC"/>
                     </StackPanel>
 
-                    <Button x:Name="PlayStopButton" 
-                            Content="▶ PLAY AUDIO" 
-                            FontSize="16" 
-                            Height="50"
-                            HorizontalAlignment="Stretch"
-                            Background="#007ACC"
-                            Foreground="White"
-                            Click="TogglePlaybackHandler"/>
+                    <CheckBox Content="Loop Audio" 
+                                IsChecked="{Binding IsLoopingEnabled}"
+                                Margin="0,0,0,10"
+                                Foreground="#E0E0E0"/>
+
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button x:Name="PlayPauseButton" 
+                                    Content="▶ Play" 
+                                    FontSize="16" 
+                                    Height="50"
+                                    HorizontalAlignment="Stretch"
+                                    Background="#007ACC"
+                                    Foreground="White"
+                                    Click="PlayPauseHandler"/>
+                            <Button x:Name="StopButton" 
+                                    Content="⏹ Stop" 
+                                    FontSize="16" 
+                                    Height="50"
+                                    HorizontalAlignment="Stretch"
+                                    Background="#404040"
+                                    Foreground="White"
+                                    Click="StopHandler"/>
+                        </StackPanel>
 
                     <TextBlock x:Name="StatMessage" 
                                    VerticalAlignment="Center"

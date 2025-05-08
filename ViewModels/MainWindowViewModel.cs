@@ -29,6 +29,20 @@ namespace BoomBx.ViewModels
             }
         }
 
+        private bool _isLoopingEnabled = false;
+        public bool IsLoopingEnabled
+        {
+            get => _isLoopingEnabled;
+            set
+            {
+                if (_isLoopingEnabled != value)
+                {
+                    _isLoopingEnabled = value;
+                    OnPropertyChanged(nameof(IsLoopingEnabled));
+                }
+            }
+        }
+
         private string? _selectedFilePath;
         public string? SelectedFilePath
         {

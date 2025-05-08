@@ -35,3 +35,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/)
 ### Fixed
 - Fix microphone not inputting audio when in audio playback
 - Fix CaptureComboBox not saving last device when changing
+
+---
+
+## [0.1.4] - 2025-5-08
+### Added
+- Added Loop Checkbox
+- Play/Pause/Stop UI and sound Optimization
+### Fixed
+- Fixed hen an audio is paused, if another one is played the old plays instead.
