@@ -1,0 +1,28 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="BoomBx.Views.InputDialog"
+        xmlns:views="using:BoomBx.Views"
+        x:DataType="views:InputDialog"
+        Background="#252525"
+        Foreground="#E0E0E0"
+        Title="Soundboard"
+        Width="300"
+        Height="150">
+    <StackPanel Margin="15" Spacing="10">
+        <TextBlock Text="{Binding Prompt}" FontSize="14"/>
+        <TextBox Text="{Binding InputText}" 
+                 FontSize="14"
+                 Background="#333333"
+                 Foreground="White"
+                 BorderThickness="0"
+                 Padding="5"/>
+        <StackPanel Orientation="Horizontal" 
+                    HorizontalAlignment="Right" 
+                    Spacing="10">
+            <Button Content="OK" Click="Ok_Click" 
+                    Width="80" Background="#007ACC"/>
+            <Button Content="Cancel" Click="Cancel_Click" 
+                    Width="80" Background="#404040"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

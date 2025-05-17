@@ -44,3 +44,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/)
 - Play/Pause/Stop UI and sound Optimization
 ### Fixed
 - Fixed hen an audio is paused, if another one is played the old plays instead.
+
+## [0.1.5] - 2025-5-17
+### Added
+- First version of soundboard management
+### Fixed
+- Fixed app data bug
+- Partially fixed driver checks and drivers not installing on some devices

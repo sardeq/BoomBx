@@ -4,50 +4,33 @@ using System.Collections.ObjectModel;
 
 namespace BoomBx.ViewModels
 {
-    public partial class MainWindowViewModel : ObservableObject 
+    public partial class MainWindowViewModel : ObservableObject
     {
         [ObservableProperty]
         private string? _appVersion;
+
+        [ObservableProperty]
+        private Soundboard? _selectedSoundboard;
+
+        [ObservableProperty]
+        private SoundItem? _selectedSound;
+
+        [ObservableProperty]
+        private bool _isLoopingEnabled;
+
+        [ObservableProperty]
+        private string? _selectedFilePath;
+
+        public ObservableCollection<Soundboard> Soundboards { get; } = new();
 
         public MainWindowViewModel()
         {
             _appVersion = $"Version {AppVersionHelper.GetInformationalVersion()}";
         }
 
-        public ObservableCollection<SoundItem> Sounds { get; } = new();
-
-        private SoundItem? _selectedSound;
-        public SoundItem? SelectedSound
+        partial void OnSelectedSoundChanged(SoundItem? value)
         {
-            get => _selectedSound;
-            set
-            {
-                if (SetProperty(ref _selectedSound, value))
-                {
-                    SelectedFilePath = _selectedSound?.Path ?? string.Empty;
-                }
-            }
-        }
-
-        private bool _isLoopingEnabled = false;
-        public bool IsLoopingEnabled
-        {
-            get => _isLoopingEnabled;
-            set
-            {
-                if (_isLoopingEnabled != value)
-                {
-                    _isLoopingEnabled = value;
-                    OnPropertyChanged(nameof(IsLoopingEnabled));
-                }
-            }
-        }
-
-        private string? _selectedFilePath;
-        public string? SelectedFilePath
-        {
-            get => _selectedFilePath;
-            private set => SetProperty(ref _selectedFilePath, value);
+            SelectedFilePath = value?.Path ?? string.Empty;
         }
     }
 }

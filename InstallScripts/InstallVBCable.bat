@@ -42,4 +42,9 @@ if %errorlevel% neq 0 (
 )
 
 echo Installation successful >> %LOGFILE%
+
+echo Restarting audio services... >> %LOGFILE%
+net stop Audiosrv /y
+net start Audiosrv
+
 exit /b 0

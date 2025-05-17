@@ -29,6 +29,7 @@ using Avalonia.Platform;
 using System.Reflection;
 using System.Text;
 using Avalonia.Media;
+using System.Text.Json.Serialization;
 
 namespace BoomBx.Views
 {
@@ -271,11 +272,10 @@ namespace BoomBx.Views
             Console.WriteLine("[Check] Starting device check");
             using var enumerator = new MMDeviceEnumerator();
             
-            var hasInput = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
-                .Any(d => d.FriendlyName.Contains("CABLE Input", StringComparison.OrdinalIgnoreCase));
-            
-            var hasOutput = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                .Any(d => d.FriendlyName.Contains("CABLE Output", StringComparison.OrdinalIgnoreCase));
+            bool hasInput = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
+                .Any(d => d.FriendlyName.IndexOf("CABLE Input", StringComparison.OrdinalIgnoreCase) >= 0);
+            bool hasOutput = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
+                .Any(d => d.FriendlyName.IndexOf("CABLE Output", StringComparison.OrdinalIgnoreCase) >= 0);
 
             return !(hasInput && hasOutput);
         }
@@ -472,7 +472,7 @@ namespace BoomBx.Views
                     return false;
                 }
 
-                for (int i = 0; i < 10; i++)
+                for (int i = 0; i < 20; i++) //extended to 20 seconds until everything stable
                 {
                     if (!CheckVBCableInstallation()) 
                     {
@@ -481,6 +481,7 @@ namespace BoomBx.Views
                     }
                     
                     UpdateStatus("VB-Cable installed successfully!");
+                    await LoadAudioDevicesAsync();
                     return true;
                 }
 
@@ -573,19 +574,18 @@ namespace BoomBx.Views
 
         private void LoadDeviceSettings()
         {
-            var path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "BoomBx", 
-                "settings.json");
-            
-            if (File.Exists(path))
+            var appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BoomBx");
+            Directory.CreateDirectory(appDataDir);
+            var path = Path.Combine(appDataDir, "settings.json");
+            if (!File.Exists(path))
             {
-                try
-                {
-                    var json = File.ReadAllText(path);
-                    _settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
-                }
-                catch { /* idk */ }
+                _settings = new AppSettings();
+                File.WriteAllText(path, JsonSerializer.Serialize(_settings));
+            }
+            else
+            {
+                var json = File.ReadAllText(path);
+                _settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
             }
 
             if (!string.IsNullOrEmpty(_settings.LastPlaybackDevice))
@@ -598,19 +598,20 @@ namespace BoomBx.Views
             {
                 CaptureComboBox.SelectedItem = _captureDevices
                     .FirstOrDefault(d => d.FriendlyName == _settings.LastCaptureDevice)?.FriendlyName;
-            }
+            } 
         }
 
         private void SaveDeviceSettings()
         {
-            var path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
-                "BoomBx", 
-                "settings.json");
-            
             _settings.LastPlaybackDevice = PlaybackComboBox.SelectedItem?.ToString();
             _settings.LastCaptureDevice = CaptureComboBox.SelectedItem?.ToString();
-            
+
+            var appDataDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
+                "BoomBx"
+            );
+            Directory.CreateDirectory(appDataDir);
+            var path = Path.Combine(appDataDir, "settings.json");
             File.WriteAllText(path, JsonSerializer.Serialize(_settings));
         }
 
@@ -673,6 +674,8 @@ namespace BoomBx.Views
 
         public async void AddToLibrary(object? sender, RoutedEventArgs e)
         {
+            if (ViewModel.SelectedSoundboard == null) return;
+
             var files = await this.StorageProvider.OpenFilePickerAsync(new FilePickerOpenOptions
             {
                 Title = "Add Audio Files",
@@ -686,7 +689,7 @@ namespace BoomBx.Views
             foreach (var file in files)
             {
                 var path = file.Path.LocalPath;
-                if (!ViewModel.Sounds.Any(s => s.Path == path))
+                if (!ViewModel.SelectedSoundboard.Sounds.Any(s => s.Path == path))
                 {
                     var newItem = new SoundItem 
                     { 
@@ -694,7 +697,7 @@ namespace BoomBx.Views
                         Name = System.IO.Path.GetFileNameWithoutExtension(path)
                     };
                     newItem.PropertyChanged += SoundItem_PropertyChanged;
-                    ViewModel.Sounds.Add(newItem);
+                    ViewModel.SelectedSoundboard.Sounds.Add(newItem);
                 }
             }
             SaveSoundLibrary();
@@ -702,9 +705,10 @@ namespace BoomBx.Views
 
         public void RemoveFromLibrary(object? sender, RoutedEventArgs e)
         {
-            if (ViewModel.SelectedSound != null)
+            if (ViewModel.SelectedSoundboard != null && 
+                ViewModel.SelectedSound != null)
             {
-                ViewModel.Sounds.Remove(ViewModel.SelectedSound);
+                ViewModel.SelectedSoundboard.Sounds.Remove(ViewModel.SelectedSound);
                 SaveSoundLibrary();
             }
         }
@@ -732,7 +736,8 @@ namespace BoomBx.Views
                         "BoomBx",
                         "icons");
                     
-                    Directory.CreateDirectory(appDataDir);
+                    var iconDir = Path.Combine(appDataDir, "icons");
+                    Directory.CreateDirectory(iconDir);
 
                     var fileName = $"{Guid.NewGuid()}{Path.GetExtension(localPath)}";
                     var destPath = Path.Combine(appDataDir, fileName);
@@ -762,49 +767,60 @@ namespace BoomBx.Views
 
         private void SaveSoundLibrary()
         {
-            var path = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
-                "BoomBx", 
-                "sounds.json");
-                
-            File.WriteAllText(path, 
-                JsonSerializer.Serialize(ViewModel.Sounds));
+            var appDataDir = Path.Combine(
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
+                "BoomBx");
+            
+            Directory.CreateDirectory(appDataDir);
+            var path = Path.Combine(appDataDir, "soundboards.json");
+            
+            var options = new JsonSerializerOptions { 
+                WriteIndented = true,
+                ReferenceHandler = ReferenceHandler.Preserve
+            };
+            
+            File.WriteAllText(path, JsonSerializer.Serialize(ViewModel.Soundboards, options));
         }
+
 
         private void LoadSoundLibrary()
         {
-            var path = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
-                "BoomBx", 
-                "sounds.json");
-                
-            if (File.Exists(path))
+            try
             {
-                var json = File.ReadAllText(path);
-                var loaded = JsonSerializer.Deserialize<List<SoundItem>>(json);
-
-                if (loaded != null)
+                var appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BoomBx");
+                Directory.CreateDirectory(appDataDir);
+                var path = Path.Combine(appDataDir, "soundboards.json");
+                
+                if (File.Exists(path))
                 {
-                    ViewModel.Sounds.Clear();
-                    foreach (var item in loaded)
+                    var json = File.ReadAllText(path);
+                    var options = new JsonSerializerOptions 
+                    { 
+                        ReferenceHandler = ReferenceHandler.Preserve,
+                        PropertyNameCaseInsensitive = true
+                    };
+                    
+                    var soundboards = JsonSerializer.Deserialize<ObservableCollection<Soundboard>>(json, options);
+                    
+                    ViewModel.Soundboards.Clear();
+                    if (soundboards != null)
                     {
-                        if (!item.IconPath.StartsWith("avares://"))
+                        foreach (var board in soundboards)
                         {
-                            var iconPath = Path.Combine(
-                                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                                "BoomBx",
-                                "icons",
-                                item.IconPath);
-
-                            if (!File.Exists(iconPath))
-                            {
-                                item.IconPath = "/Assets/bocchi.jpg";
-                            }
+                            ViewModel.Soundboards.Add(board);
                         }
-                        
-                        item.PropertyChanged += SoundItem_PropertyChanged;
-                        ViewModel.Sounds.Add(item);
                     }
                 }
+
+                if (!ViewModel.Soundboards.Any())
+                {
+                    var defaultBoard = new Soundboard { Name = "Default" };
+                    ViewModel.Soundboards.Add(defaultBoard);
+                }
+            }
+            catch(Exception ex)
+            {
+                Console.WriteLine($"Error loading sound library: {ex}");
             }
         }
 
@@ -1007,8 +1023,61 @@ namespace BoomBx.Views
             return input;
         }
 
+        private void SoundboardList_SelectionChanged(object sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is Soundboard selected)
+            {
+                ViewModel.SelectedSoundboard = selected;
+            }
+        }
+        
+        public async void AddSoundboard(object sender, RoutedEventArgs e)
+        {
+            var dialog = new InputDialog { Prompt = "Enter soundboard name:" };
+            var result = await dialog.ShowDialog<string>(this);
+            
+            if (!string.IsNullOrWhiteSpace(result))
+            {
+                var soundboard = new Soundboard { Name = result };
+                ViewModel.Soundboards.Add(soundboard);
+                ViewModel.SelectedSoundboard = soundboard;
+                SaveSoundLibrary();
+            }
+        }
 
-        //to whoever reading this, i will clean up and optimize i promise
+        public async void RenameSoundboard(object sender, RoutedEventArgs e)
+        {
+            if (ViewModel.SelectedSoundboard == null) return;
+            
+            var dialog = new InputDialog
+            {
+                Title = "Rename Soundboard",
+                Prompt = "Enter new name:",
+                InputText = ViewModel.SelectedSoundboard.Name ?? string.Empty
+            };
+            
+            var newName = await dialog.ShowDialog<string>(this);
+            
+            if (!string.IsNullOrWhiteSpace(newName))
+            {
+                ViewModel.SelectedSoundboard.Name = newName;
+                SaveSoundLibrary();
+            }
+        }
+
+        public void RemoveSoundboard(object sender, RoutedEventArgs e)
+        {
+            if (ViewModel.SelectedSoundboard != null && 
+                ViewModel.Soundboards.Count > 1)
+            {
+                ViewModel.Soundboards.Remove(ViewModel.SelectedSoundboard);
+                ViewModel.SelectedSoundboard = ViewModel.Soundboards.FirstOrDefault();
+                SaveSoundLibrary();
+            }
+        }
+
+
+        //to whoever reading this, i will clean up and optimize i promise LATER
         private void OpenGitHub(object? sender, RoutedEventArgs e)
         {
             Process.Start(new ProcessStartInfo

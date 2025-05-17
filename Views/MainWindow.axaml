@@ -14,7 +14,7 @@
         Background="#1A1A1A"
         WindowStartupLocation="CenterScreen"
         FontFamily="Segoe UI">
-
+    
     <Window.Resources>
         <conv:UriToImageSourceConverter x:Key="UriConverter"/>
         <conv:NavigationEqualityConverter x:Key="NavigationEqualityConverter"/>
@@ -43,49 +43,48 @@
     <Grid Background="#1A1A1A" ColumnDefinitions="200,*,300" 
           HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
 
-          <Border Grid.Column="0" Background="#252525" Margin="0,0,1,0">
+        <Border Grid.Column="0" Background="#252525" Margin="0,0,1,0">
             <StackPanel Spacing="0">
-            <Border Padding="15" Background="#2D2D2D">
-                <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
-                    <Image Source="/Assets/logo.png" Width="50" Height="50"/>
-                    <TextBlock Text="BOOMBX" 
-                            FontSize="16" 
-                            FontWeight="Bold" 
-                            Foreground="#E0E0E0"
-                            VerticalAlignment="Center"/>
-                </StackPanel>
-            </Border>
+                <Border Padding="15" Background="#2D2D2D">
+                    <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center">
+                        <Image Source="/Assets/logo.png" Width="50" Height="50"/>
+                        <TextBlock Text="BOOMBX" 
+                                   FontSize="16" 
+                                   FontWeight="Bold" 
+                                   Foreground="#E0E0E0"
+                                   VerticalAlignment="Center"/>
+                    </StackPanel>
+                </Border>
                 
                 <StackPanel Spacing="10" Margin="10">
                     <RadioButton x:Name="SoundsNav"
-                                GroupName="Nav"
-                                Content="Sounds"
-                                Classes="SidebarButton"
-                                Tag="{x:Static views:NavigationItem.Sounds}"
-                                IsChecked="True"/>
+                                 GroupName="Nav"
+                                 Content="Sounds"
+                                 Classes="SidebarButton"
+                                 Tag="{x:Static views:NavigationItem.Sounds}"
+                                 IsChecked="True"/>
                     
                     <RadioButton x:Name="TextToSpeechNav"
-                                GroupName="Nav"
-                                Content="Text-to-Speech"
-                                Classes="SidebarButton"
-                                Tag="{x:Static views:NavigationItem.TextToSpeech}"/>
+                                 GroupName="Nav"
+                                 Content="Text-to-Speech"
+                                 Classes="SidebarButton"
+                                 Tag="{x:Static views:NavigationItem.TextToSpeech}"/>
                     
                     <RadioButton x:Name="VoiceChangerNav"
-                                GroupName="Nav"
-                                Content="Voice Changer"
-                                Classes="SidebarButton"
-                                Tag="{x:Static views:NavigationItem.VoiceChanger}"/>
+                                 GroupName="Nav"
+                                 Content="Voice Changer"
+                                 Classes="SidebarButton"
+                                 Tag="{x:Static views:NavigationItem.VoiceChanger}"/>
                     
                     <RadioButton x:Name="SettingsNav"
-                                GroupName="Nav"
-                                Content="Settings"
-                                Classes="SidebarButton"
-                                Tag="{x:Static views:NavigationItem.Settings}"/>
+                                 GroupName="Nav"
+                                 Content="Settings"
+                                 Classes="SidebarButton"
+                                 Tag="{x:Static views:NavigationItem.Settings}"/>
                 </StackPanel>
             </StackPanel>
         </Border>
         
-
         <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto">
             <StackPanel x:Name="MainUI" 
                         IsVisible="False" 
@@ -95,79 +94,108 @@
                         Margin="20">
                 <Border Background="#2D2D2D" CornerRadius="8" Padding="25"
                         IsVisible="{Binding #SoundsNav.IsChecked}">
-                    <StackPanel Spacing="25">
+                    <StackPanel Spacing="20">
+                        <Border Background="#333333" CornerRadius="4" Padding="5">
+                            <StackPanel Spacing="5">
+                                <TextBlock Text="SOUNDBOARDS" Foreground="#A0A0A0" FontSize="12"/>
+                                <ListBox ItemsSource="{Binding Soundboards}"
+                                         SelectionChanged="SoundboardList_SelectionChanged"
+                                         SelectedItem="{Binding SelectedSoundboard, Mode=TwoWay}"
+                                         ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                         Background="Transparent"
+                                         BorderThickness="0">
+                                    <ListBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}" 
+                                                       Foreground="#E0E0E0"
+                                                       Padding="5"/>
+                                        </DataTemplate>
+                                    </ListBox.ItemTemplate>
+                                </ListBox>
+                                <StackPanel Orientation="Horizontal" Spacing="5">
+                                    <Button Content="Add" 
+                                            Click="AddSoundboard" 
+                                            Width="60" Background="#404040"
+                                            Foreground="White"/>
+                                    <Button Content="Edit" 
+                                            Click="RenameSoundboard" 
+                                            Width="60" Background="#404040" 
+                                            Foreground="White"/>
+                                    <Button Content="Delete" 
+                                            Click="RemoveSoundboard" 
+                                            Width="60" Background="#404040" 
+                                            Foreground="White"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </Border>
                         <TextBlock Text="Sound Library" FontSize="22" FontWeight="Bold"
                                    Foreground="#E0E0E0" HorizontalAlignment="Center"/>
-                        
-                        <StackPanel Spacing="10">
-                            <StackPanel Orientation="Horizontal" Spacing="10">
-                                <Button Content="Add Sound" Click="AddToLibrary" 
-                                        Width="120" Background="#007ACC"/>
-                                <Button Content="Remove Selected" Click="RemoveFromLibrary" 
-                                        Width="120" Background="#404040"/>
-                            </StackPanel>
-                            
-                            <Border Background="#333333" CornerRadius="4">
-                                <ListBox SelectionMode="Single" ItemsSource="{Binding Sounds}"
-                                        SelectedItem="{Binding SelectedSound, Mode=TwoWay}"
-                                        ScrollViewer.HorizontalScrollBarVisibility="Disabled"
-                                        Background="Transparent"
-                                        BorderThickness="0"
-                                        Padding="0"
-                                        ItemContainerTheme="{StaticResource CustomListBoxItemTheme}">
-                                    <ListBox.ItemsPanel>
-                                        <ItemsPanelTemplate>
-                                            <WrapPanel Orientation="Horizontal" Margin="0,0,15,0"/>
-                                        </ItemsPanelTemplate>
-                                    </ListBox.ItemsPanel>
-                                    <ListBox.ItemTemplate>
-                                        <DataTemplate DataType="model:SoundItem">
-                                            <Border Classes="listbox-item"
+                        <StackPanel Orientation="Horizontal" Spacing="10">
+                            <Button Content="Add Sound" Click="AddToLibrary" 
+                                    Width="120" Background="#007ACC"/>
+                            <Button Content="Remove Selected" Click="RemoveFromLibrary" 
+                                    Width="120" Background="#404040"/>
+                        </StackPanel>
+                        <Border Background="#333333" CornerRadius="4">
+                            <ListBox SelectionMode="Single" ItemsSource="{Binding SelectedSoundboard.Sounds}"
+                                     SelectedItem="{Binding SelectedSound, Mode=TwoWay}"
+                                     ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                                     Background="Transparent"
+                                     BorderThickness="0"
+                                     Padding="0"
+                                     ItemContainerTheme="{StaticResource CustomListBoxItemTheme}">
+                                <ListBox.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal" Margin="0,0,15,0"/>
+                                    </ItemsPanelTemplate>
+                                </ListBox.ItemsPanel>
+                                <ListBox.ItemTemplate>
+                                    <DataTemplate DataType="model:SoundItem">
+                                        <Border Classes="listbox-item"
                                                 Width="120" 
                                                 Height="140" 
                                                 Background="#333333" 
                                                 CornerRadius="8"
                                                 Padding="10"
                                                 Cursor="Hand">
-                                                    <Border.Styles>
-                                                        <Style Selector="Border.listbox-item:focus">
-                                                            <Setter Property="BorderThickness" Value="1"/>
-                                                        </Style>
-                                                        <Style Selector="Border.listbox-item">
-                                                            <Setter Property="BorderBrush" Value="Transparent"/>
-                                                            <Setter Property="BorderThickness" Value="2"/>
-                                                        </Style>
-                                                        <Style Selector="Border.listbox-item:pointerover">
-                                                            <Setter Property="RenderTransform">
-                                                                <TransformGroup>
-                                                                    <ScaleTransform ScaleX="1.02" ScaleY="1.02"/>
-                                                                </TransformGroup>
-                                                            </Setter>
-                                                        </Style>
-                                                    </Border.Styles>
-                                                <StackPanel Spacing="8" HorizontalAlignment="Center">
-                                                    <Border Width="80" 
-                                                            Height="80" 
-                                                            Background="#404040" 
-                                                            CornerRadius="4">
-                                                        <Image Source="{Binding IconPath, Converter={StaticResource UriConverter}}"
-                                                            Width="40" 
-                                                            Height="40"/>
-                                                    </Border>
-                                                    <TextBlock Text="{Binding Name}" 
-                                                            Foreground="#E0E0E0"
-                                                            FontSize="13"
-                                                            TextWrapping="Wrap"
-                                                            HorizontalAlignment="Center"
-                                                            MaxWidth="100"
-                                                            TextAlignment="Center"/>
-                                                </StackPanel>
-                                            </Border>
-                                        </DataTemplate>
-                                    </ListBox.ItemTemplate>
-                                </ListBox>
-                            </Border>
-                        </StackPanel>
+                                            <Border.Styles>
+                                                <Style Selector="Border.listbox-item:focus">
+                                                    <Setter Property="BorderThickness" Value="1"/>
+                                                </Style>
+                                                <Style Selector="Border.listbox-item">
+                                                    <Setter Property="BorderBrush" Value="Transparent"/>
+                                                    <Setter Property="BorderThickness" Value="2"/>
+                                                </Style>
+                                                <Style Selector="Border.listbox-item:pointerover">
+                                                    <Setter Property="RenderTransform">
+                                                        <TransformGroup>
+                                                            <ScaleTransform ScaleX="1.02" ScaleY="1.02"/>
+                                                        </TransformGroup>
+                                                    </Setter>
+                                                </Style>
+                                            </Border.Styles>
+                                            <StackPanel Spacing="8" HorizontalAlignment="Center">
+                                                <Border Width="80" 
+                                                        Height="80" 
+                                                        Background="#404040" 
+                                                        CornerRadius="4">
+                                                    <Image Source="{Binding IconPath, Converter={StaticResource UriConverter}}"
+                                                           Width="40" 
+                                                           Height="40"/>
+                                                </Border>
+                                                <TextBlock Text="{Binding Name}" 
+                                                           Foreground="#E0E0E0"
+                                                           FontSize="13"
+                                                           TextWrapping="Wrap"
+                                                           HorizontalAlignment="Center"
+                                                           MaxWidth="100"
+                                                           TextAlignment="Center"/>
+                                            </StackPanel>
+                                        </Border>
+                                    </DataTemplate>
+                                </ListBox.ItemTemplate>
+                            </ListBox>
+                        </Border>
                     </StackPanel>
                 </Border>
 
@@ -201,7 +229,6 @@
                                           Height="40" 
                                           FontSize="14"
                                           SelectionChanged="PlaybackDeviceChanged"/>
-
                             </StackPanel>
 
                             <StackPanel Spacing="5">
@@ -217,22 +244,20 @@
                         </StackPanel>
 
                         <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="20" Margin="0,10,0,0">
-                        <Button ToolTip.Tip="GitHub" Click="OpenGitHub" Background="Transparent" BorderThickness="0" Cursor="Hand">
-                            <Image Source="/Assets/github.png" Width="24" Height="24"/>
-                        </Button>
-                        <Button ToolTip.Tip="Trello" Click="OpenTrello" Background="Transparent" BorderThickness="0" Cursor="Hand">
-                            <Image Source="/Assets/trello.png" Width="24" Height="24"/>
-                        </Button>
-                    </StackPanel>
+                            <Button ToolTip.Tip="GitHub" Click="OpenGitHub" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                <Image Source="/Assets/github.png" Width="24" Height="24"/>
+                            </Button>
+                            <Button ToolTip.Tip="Trello" Click="OpenTrello" Background="Transparent" BorderThickness="0" Cursor="Hand">
+                                <Image Source="/Assets/trello.png" Width="24" Height="24"/>
+                            </Button>
+                        </StackPanel>
 
-                         <TextBlock Text="{Binding AppVersion}" 
-                            Foreground="#606060"
-                            FontSize="12"
-                            HorizontalAlignment="Center"
-                            Margin="0,20,0,0"/>
+                        <TextBlock Text="{Binding AppVersion}" 
+                                   Foreground="#606060"
+                                   FontSize="12"
+                                   HorizontalAlignment="Center"
+                                   Margin="0,20,0,0"/>
                     </StackPanel>
-
-                    
                 </Border>
             </StackPanel>
         </ScrollViewer>
@@ -245,12 +270,9 @@
             <ScrollViewer VerticalScrollBarVisibility="Auto">
                 <StackPanel Spacing="20" Margin="15">
                     <Border Background="#333333" CornerRadius="8" Padding="15">
-
                         <StackPanel HorizontalAlignment="Center" Spacing="10">
-
                             <Image Source="{Binding SelectedSound.IconPath, Converter={StaticResource UriConverter}}"
-                                    Width="60" Height="60"/>
-
+                                   Width="60" Height="60"/>
                             <TextBlock Text="SELECTED AUDIO" 
                                        Foreground="#A0A0A0"
                                        FontSize="12"
@@ -291,33 +313,33 @@
                     </StackPanel>
 
                     <CheckBox Content="Loop Audio" 
-                                IsChecked="{Binding IsLoopingEnabled}"
-                                Margin="0,0,0,10"
-                                Foreground="#E0E0E0"/>
+                              IsChecked="{Binding IsLoopingEnabled}"
+                              Margin="0,0,0,10"
+                              Foreground="#E0E0E0"/>
 
-                        <StackPanel Orientation="Horizontal" Spacing="10">
-                            <Button x:Name="PlayPauseButton" 
-                                    Content="▶ Play" 
-                                    FontSize="16" 
-                                    Height="50"
-                                    HorizontalAlignment="Stretch"
-                                    Background="#007ACC"
-                                    Foreground="White"
-                                    Click="PlayPauseHandler"/>
-                            <Button x:Name="StopButton" 
-                                    Content="⏹ Stop" 
-                                    FontSize="16" 
-                                    Height="50"
-                                    HorizontalAlignment="Stretch"
-                                    Background="#404040"
-                                    Foreground="White"
-                                    Click="StopHandler"/>
-                        </StackPanel>
+                    <StackPanel Orientation="Horizontal" Spacing="10">
+                        <Button x:Name="PlayPauseButton" 
+                                Content="▶ Play" 
+                                FontSize="16" 
+                                Height="50"
+                                HorizontalAlignment="Stretch"
+                                Background="#007ACC"
+                                Foreground="White"
+                                Click="PlayPauseHandler"/>
+                        <Button x:Name="StopButton" 
+                                Content="⏹ Stop" 
+                                FontSize="16" 
+                                Height="50"
+                                HorizontalAlignment="Stretch"
+                                Background="#404040"
+                                Foreground="White"
+                                Click="StopHandler"/>
+                    </StackPanel>
 
                     <TextBlock x:Name="StatMessage" 
-                                   VerticalAlignment="Center"
-                                   Foreground="#E0E0E0"
-                                   FontSize="13"/>
+                               VerticalAlignment="Center"
+                               Foreground="#E0E0E0"
+                               FontSize="13"/>
                 </StackPanel>
             </ScrollViewer>
         </Border>
@@ -354,7 +376,7 @@
                            Foreground="#E0E0E0"
                            FontSize="13"
                            Text="It appears you don't have VB-Cable, some functionalities may not work."/>
-                    <TextBlock x:Name="InstallationMessageT" 
+                <TextBlock x:Name="InstallationMessageT" 
                            VerticalAlignment="Center"
                            Foreground="#E0E0E0"
                            FontSize="13"/>
