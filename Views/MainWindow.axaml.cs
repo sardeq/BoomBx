@@ -30,6 +30,7 @@ using System.Reflection;
 using System.Text;
 using Avalonia.Media;
 using System.Text.Json.Serialization;
+using Avalonia.Input;
 
 namespace BoomBx.Views
 {
@@ -42,7 +43,7 @@ namespace BoomBx.Views
         //private IWavePlayer? _audioWaveOut;
         private WasapiCapture? _micCapture;
         private List<Process> _activeProcesses = new();
-        private bool _isPlaying;
+        //private bool _isPlaying;
         //private LoopStream? _loopedAudio;
         private IWavePlayer? _audioWaveOutSpeaker;
         //private LoopStream? _loopedAudioSpeaker;
@@ -63,6 +64,18 @@ namespace BoomBx.Views
         private LoopStream? _speakerLoopStream;
         private long _pausePositionVirtual;
         private long _pausePositionSpeaker;
+
+        private void MinimizeClick(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
+        private void MaximizeClick(object? sender, RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
+        private void CloseClick(object? sender, RoutedEventArgs e) => Close();
+
+        private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
+        {
+            if (e.GetCurrentPoint(this).Properties.IsLeftButtonPressed)
+            {
+                BeginMoveDrag(e);
+            }
+        }
 
         public void SetCloseSplashAction(Func<Task> action)
         {
@@ -96,7 +109,7 @@ namespace BoomBx.Views
             
             this.ShowInTaskbar = true;
             this.WindowState = WindowState.Normal;
-            this.CanResize = false;
+            //this.CanResize = false;
             this.Opacity = 1;
             this.IsVisible = false;
             Console.WriteLine("[3] Window properties set");
@@ -232,6 +245,7 @@ namespace BoomBx.Views
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     this.IsVisible = true;
+                    //this.CanResize = true;
                     this.InvalidateMeasure();
                     this.InvalidateArrange();
                 });

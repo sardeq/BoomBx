@@ -6,6 +6,7 @@
         Background="#252525"
         Foreground="#E0E0E0"
         Title="Soundboard"
+        CanResize="False"
         Width="300"
         Height="150">
     <StackPanel Margin="15" Spacing="10">
