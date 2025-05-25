@@ -327,6 +327,39 @@
                                        FontSize="12"/>
                         </StackPanel>
 
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Bass (dB)" Foreground="#A0A0A0" FontSize="12"/>
+                            <Slider Minimum="-20" Maximum="20" 
+                                    Value="{Binding SelectedSound.Bass, Mode=TwoWay}"
+                                    Background="Transparent"
+                                    Foreground="#007ACC"/>
+                            <TextBlock Text="{Binding SelectedSound.Bass, StringFormat='{}Bass: {0:F0} dB'}"
+                                    Foreground="#A0A0A0"
+                                    FontSize="12"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Treble (dB)" Foreground="#A0A0A0" FontSize="12"/>
+                            <Slider Minimum="-20" Maximum="20" 
+                                    Value="{Binding SelectedSound.Treble, Mode=TwoWay}"
+                                    Background="Transparent"
+                                    Foreground="#007ACC"/>
+                            <TextBlock Text="{Binding SelectedSound.Treble, StringFormat='{}Treble: {0:F0} dB'}"
+                                    Foreground="#A0A0A0"
+                                    FontSize="12"/>
+                        </StackPanel>
+
+                        <StackPanel Spacing="5">
+                            <TextBlock Text="Pitch" Foreground="#A0A0A0" FontSize="12"/>
+                            <Slider Minimum="0.5" Maximum="2.0" 
+                                    Value="{Binding SelectedSound.Pitch, Mode=TwoWay}"
+                                    Background="Transparent"
+                                    Foreground="#007ACC"/>
+                            <TextBlock Text="{Binding SelectedSound.Pitch, StringFormat='{}Pitch: {0:F1}x'}"
+                                    Foreground="#A0A0A0"
+                                    FontSize="12"/>
+                        </StackPanel>
+
                         <Button Content="Change Icon" 
                                 Click="ChangeIconClicked" 
                                 Width="120" 

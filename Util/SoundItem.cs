@@ -50,6 +50,39 @@ namespace BoomBx.Models
             }
         }
 
+        private double _bass;
+        public double Bass
+        {
+            get => _bass;
+            set
+            {
+                _bass = Math.Clamp(value, -20, 20);
+                OnPropertyChanged();
+            }
+        }
+
+        private double _treble;
+        public double Treble
+        {
+            get => _treble;
+            set
+            {
+                _treble = Math.Clamp(value, -20, 20);
+                OnPropertyChanged();
+            }
+        }
+
+        private double _pitch = 1.0;
+        public double Pitch
+        {
+            get => _pitch;
+            set
+            {
+                _pitch = Math.Clamp(value, 0.5, 2.0);
+                OnPropertyChanged();
+            }
+        }
+
         public event PropertyChangedEventHandler? PropertyChanged;
 
         protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
