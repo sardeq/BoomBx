@@ -31,6 +31,8 @@ using System.Text;
 using Avalonia.Media;
 using System.Text.Json.Serialization;
 using Avalonia.Input;
+using System.Speech.Synthesis;
+using System.Speech.AudioFormat;
 
 namespace BoomBx.Views
 {
@@ -73,6 +75,14 @@ namespace BoomBx.Views
         private EqualizerSampleProvider? _equalizerSpeaker;
         private PitchShifter? _pitchShifterVirtual;
         private PitchShifter? _pitchShifterSpeaker;
+        
+        #if WINDOWS
+            private SpeechSynthesizer _synth = new();
+        #else
+                private object _synth = new();
+        #endif
+        
+        private MemoryStream? _ttsAudioStream;
 
 
         private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
@@ -98,7 +108,7 @@ namespace BoomBx.Views
 
         public new void Show()
         {
-            if(!IsVisible)
+            if (!IsVisible)
             {
                 Dispatcher.UIThread.Post(() => base.Show());
             }
@@ -108,11 +118,15 @@ namespace BoomBx.Views
         {
             Console.SetOut(new SplashTextWriter());
             Console.WriteLine("[1] MainWindow constructor started");
-            
+
             this.Styles.Add(new FluentTheme());
             InitializeComponent();
             DataContext = new MainWindowViewModel();
-            
+
+            #if WINDOWS
+                InitializeTts();
+            #endif
+
             this.ShowInTaskbar = true;
             this.WindowState = WindowState.Normal;
             //this.CanResize = false;
@@ -148,7 +162,7 @@ namespace BoomBx.Views
             try
             {
                 Console.WriteLine("[4] Starting main initialization");
-                await Dispatcher.UIThread.InvokeAsync(async () => 
+                await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
                     await MainWindow_LoadedAsync();
                 });
@@ -162,9 +176,9 @@ namespace BoomBx.Views
 
         private async Task LoadIconAsync()
         {
-            try 
+            try
             {
-                await Task.Run(() => 
+                await Task.Run(() =>
                 {
                     var uri = new Uri("avares://BoomBx/Assets/bocchi.jpg");
                     using var stream = AssetLoader.Open(uri);
@@ -177,7 +191,7 @@ namespace BoomBx.Views
                 Console.WriteLine($"Error loading default icon: {ex}");
             }
         }
-        
+
         private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
         {
             if (e.PropertyName == nameof(MainWindowViewModel.SelectedSound))
@@ -207,12 +221,12 @@ namespace BoomBx.Views
                     _speakerLoopStream.Loop = ViewModel.IsLoopingEnabled;
             }
         }
-        
+
         private void SoundItem_VolumeChanged(object? sender, PropertyChangedEventArgs e)
         {
-            if (sender is not SoundItem soundItem || 
+            if (sender is not SoundItem soundItem ||
                 _currentPlaybackState != PlaybackState.Playing ||
-                _volumeProviderVirtual == null || 
+                _volumeProviderVirtual == null ||
                 _volumeProviderSpeaker == null)
             {
                 return;
@@ -226,13 +240,13 @@ namespace BoomBx.Views
                         _volumeProviderVirtual.Volume = (float)soundItem.Volume / 100;
                         _volumeProviderSpeaker.Volume = (float)soundItem.Volume / 100;
                         break;
-                        
+
                     case nameof(SoundItem.Bass):
                     case nameof(SoundItem.Treble):
                         _equalizerVirtual?.UpdateFilters(soundItem);
                         _equalizerSpeaker?.UpdateFilters(soundItem);
                         break;
-                        
+
                     case nameof(SoundItem.Pitch):
                         _pitchShifterVirtual?.SetPitch((float)soundItem.Pitch);
                         _pitchShifterSpeaker?.SetPitch((float)soundItem.Pitch);
@@ -244,7 +258,7 @@ namespace BoomBx.Views
                 UpdateStatus($"⚠️ Update failed: {ex.Message}");
             }
         }
-        
+
         private void UpdateVolume(SoundItem soundItem)
         {
             float newVolume = (float)soundItem.Volume / 100f;
@@ -266,7 +280,7 @@ namespace BoomBx.Views
         {
             if (_pitchShifterVirtual != null)
                 _pitchShifterVirtual.PitchFactor = (float)soundItem.Pitch;
-            
+
             if (_pitchShifterSpeaker != null)
                 _pitchShifterSpeaker.PitchFactor = (float)soundItem.Pitch;
         }
@@ -305,9 +319,9 @@ namespace BoomBx.Views
                     this.InvalidateMeasure();
                     this.InvalidateArrange();
                 });
-                
+
                 Console.WriteLine("[5] MainWindow_LoadedAsync started");
-                
+
                 using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
                 var needsInstallation = !_installationDismissed && await Task.Run(() => CheckVBCableInstallation());
 
@@ -315,7 +329,7 @@ namespace BoomBx.Views
                 {
                     MainUI.IsVisible = true;
                     InstallationPanel.IsVisible = needsInstallation;
-                    InstallationMessage.Text = needsInstallation 
+                    InstallationMessage.Text = needsInstallation
                         ? "VB-Cable not detected. Please install to continue full functionality."
                         : "";
                 });
@@ -341,7 +355,7 @@ namespace BoomBx.Views
         {
             Console.WriteLine("[Check] Starting device check");
             using var enumerator = new MMDeviceEnumerator();
-            
+
             bool hasInput = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
                 .Any(d => d.FriendlyName.IndexOf("CABLE Input", StringComparison.OrdinalIgnoreCase) >= 0);
             bool hasOutput = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
@@ -382,7 +396,7 @@ namespace BoomBx.Views
 
                 var success = await RunInstallerAsync();
 
-                await Dispatcher.UIThread.InvokeAsync(async() =>
+                await Dispatcher.UIThread.InvokeAsync(async () =>
                 {
                     InstallationPanel.IsVisible = !success;
                     MainUI.IsVisible = true;
@@ -428,14 +442,14 @@ namespace BoomBx.Views
                 InstallationMessageT.Text = message ?? string.Empty;
 
                 StatoMessage.Text = message ?? string.Empty;
-                StatoMessage.Foreground = isError 
-                    ? new SolidColorBrush(Colors.OrangeRed) 
+                StatoMessage.Foreground = isError
+                    ? new SolidColorBrush(Colors.OrangeRed)
                     : new SolidColorBrush(Colors.LightGray);
-                
+
                 if (!isError)
                 {
-                    Task.Delay(5000).ContinueWith(_ => 
-                        Dispatcher.UIThread.Post(() => 
+                    Task.Delay(5000).ContinueWith(_ =>
+                        Dispatcher.UIThread.Post(() =>
                         {
                             if (StatoMessage.Text == message)
                                 StatoMessage.Text = string.Empty;
@@ -456,7 +470,7 @@ namespace BoomBx.Views
             {
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
-                    var lifetime = Application.Current?.ApplicationLifetime 
+                    var lifetime = Application.Current?.ApplicationLifetime
                         as IClassicDesktopStyleApplicationLifetime;
                     lifetime?.Shutdown(0);
                 });
@@ -471,17 +485,17 @@ namespace BoomBx.Views
         {
             string tempDir = "";
             string logPath = Path.Combine(Path.GetTempPath(), "vb_cable_install.log");
-            
+
             try
             {
                 ShowProgress("Preparing installer...");
                 UpdateStatus("Starting VB-Cable installation...");
-                
+
                 if (File.Exists(logPath)) File.Delete(logPath);
 
                 var assembly = Assembly.GetExecutingAssembly();
                 const string resourceName = "BoomBx.InstallScripts.InstallVBCable.bat";
-                
+
                 using var stream = assembly.GetManifestResourceStream(resourceName);
                 if (stream == null)
                 {
@@ -509,7 +523,7 @@ namespace BoomBx.Views
                 };
 
                 using var process = new Process { StartInfo = processInfo };
-                
+
                 try
                 {
                     process.Start();
@@ -537,19 +551,19 @@ namespace BoomBx.Views
                         3 => "Driver installation failed - Run as Administrator",
                         _ => $"Installation error (Code: {process.ExitCode})"
                     };
-                    
+
                     UpdateStatus(errorMessage, true);
                     return false;
                 }
 
                 for (int i = 0; i < 20; i++) //extended to 20 seconds until everything stable
                 {
-                    if (!CheckVBCableInstallation()) 
+                    if (!CheckVBCableInstallation())
                     {
                         await Task.Delay(1000);
                         continue;
                     }
-                    
+
                     UpdateStatus("VB-Cable installed successfully!");
                     await LoadAudioDevicesAsync();
                     return true;
@@ -578,7 +592,7 @@ namespace BoomBx.Views
                 using var enumerator = new MMDeviceEnumerator();
                 var hasInput = enumerator.EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
                     .Any(d => d.FriendlyName.Contains("CABLE Input"));
-                
+
                 var hasOutput = enumerator.EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
                     .Any(d => d.FriendlyName.Contains("CABLE Output"));
 
@@ -614,7 +628,7 @@ namespace BoomBx.Views
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     using var enumerator = new MMDeviceEnumerator();
-                    
+
                     var playback = enumerator
                         .EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
                         .OrderBy(d => d.FriendlyName)
@@ -630,9 +644,9 @@ namespace BoomBx.Views
 
                     PlaybackComboBox.ItemsSource = playback.Select(d => d.FriendlyName);
                     CaptureComboBox.ItemsSource = capture.Select(d => d.FriendlyName);
-                    
+
                     LoadDeviceSettings();
-                    
+
                     SelectDefaultDevices();
                 });
             }
@@ -663,12 +677,12 @@ namespace BoomBx.Views
                 PlaybackComboBox.SelectedItem = _playbackDevices
                     .FirstOrDefault(d => d.FriendlyName == _settings.LastPlaybackDevice)?.FriendlyName;
             }
-            
+
             if (!string.IsNullOrEmpty(_settings.LastCaptureDevice))
             {
                 CaptureComboBox.SelectedItem = _captureDevices
                     .FirstOrDefault(d => d.FriendlyName == _settings.LastCaptureDevice)?.FriendlyName;
-            } 
+            }
         }
 
         private void SaveDeviceSettings()
@@ -677,7 +691,7 @@ namespace BoomBx.Views
             _settings.LastCaptureDevice = CaptureComboBox.SelectedItem?.ToString();
 
             var appDataDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "BoomBx"
             );
             Directory.CreateDirectory(appDataDir);
@@ -724,7 +738,7 @@ namespace BoomBx.Views
 
             _persistentOutput = new WasapiOut(playbackDevice, AudioClientShareMode.Shared, true, 100);
             _persistentOutput.Init(_persistentMixer);
-            
+
             _micCapture.StartRecording();
             _persistentOutput.Play();
         }
@@ -733,10 +747,10 @@ namespace BoomBx.Views
         {
             _persistentOutput?.Stop();
             _micCapture?.StopRecording();
-            
+
             _persistentOutput?.Dispose();
             _micCapture?.Dispose();
-            
+
             _persistentOutput = null;
             _micCapture = null;
             _persistentMixer = null;
@@ -761,8 +775,8 @@ namespace BoomBx.Views
                 var path = file.Path.LocalPath;
                 if (!ViewModel.SelectedSoundboard.Sounds.Any(s => s.Path == path))
                 {
-                    var newItem = new SoundItem 
-                    { 
+                    var newItem = new SoundItem
+                    {
                         Path = path,
                         Name = System.IO.Path.GetFileNameWithoutExtension(path)
                     };
@@ -775,7 +789,7 @@ namespace BoomBx.Views
 
         public void RemoveFromLibrary(object? sender, RoutedEventArgs e)
         {
-            if (ViewModel.SelectedSoundboard != null && 
+            if (ViewModel.SelectedSoundboard != null &&
                 ViewModel.SelectedSound != null)
             {
                 ViewModel.SelectedSoundboard.Sounds.Remove(ViewModel.SelectedSound);
@@ -805,7 +819,7 @@ namespace BoomBx.Views
                         Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                         "BoomBx",
                         "icons");
-                    
+
                     var iconDir = Path.Combine(appDataDir, "icons");
                     Directory.CreateDirectory(iconDir);
 
@@ -838,17 +852,18 @@ namespace BoomBx.Views
         private void SaveSoundLibrary()
         {
             var appDataDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), 
+                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "BoomBx");
-            
+
             Directory.CreateDirectory(appDataDir);
             var path = Path.Combine(appDataDir, "soundboards.json");
-            
-            var options = new JsonSerializerOptions { 
+
+            var options = new JsonSerializerOptions
+            {
                 WriteIndented = true,
                 ReferenceHandler = ReferenceHandler.Preserve
             };
-            
+
             File.WriteAllText(path, JsonSerializer.Serialize(ViewModel.Soundboards, options));
         }
 
@@ -860,18 +875,18 @@ namespace BoomBx.Views
                 var appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BoomBx");
                 Directory.CreateDirectory(appDataDir);
                 var path = Path.Combine(appDataDir, "soundboards.json");
-                
+
                 if (File.Exists(path))
                 {
                     var json = File.ReadAllText(path);
-                    var options = new JsonSerializerOptions 
-                    { 
+                    var options = new JsonSerializerOptions
+                    {
                         ReferenceHandler = ReferenceHandler.Preserve,
                         PropertyNameCaseInsensitive = true
                     };
-                    
+
                     var soundboards = JsonSerializer.Deserialize<ObservableCollection<Soundboard>>(json, options);
-                    
+
                     ViewModel.Soundboards.Clear();
                     if (soundboards != null)
                     {
@@ -888,7 +903,7 @@ namespace BoomBx.Views
                     ViewModel.Soundboards.Add(defaultBoard);
                 }
             }
-            catch(Exception ex)
+            catch (Exception ex)
             {
                 Console.WriteLine($"Error loading sound library: {ex}");
             }
@@ -903,19 +918,19 @@ namespace BoomBx.Views
         {
             if (string.IsNullOrEmpty(_settings.LastPlaybackDevice))
             {
-                var cableInput = _playbackDevices.FirstOrDefault(d => 
+                var cableInput = _playbackDevices.FirstOrDefault(d =>
                     d.FriendlyName.Contains("CABLE Input", StringComparison.OrdinalIgnoreCase));
-                
-                PlaybackComboBox.SelectedItem = cableInput?.FriendlyName 
+
+                PlaybackComboBox.SelectedItem = cableInput?.FriendlyName
                     ?? _playbackDevices.FirstOrDefault()?.FriendlyName;
             }
 
             if (string.IsNullOrEmpty(_settings.LastCaptureDevice))
             {
-                var defaultMic = _captureDevices.FirstOrDefault(d => 
+                var defaultMic = _captureDevices.FirstOrDefault(d =>
                     !d.FriendlyName.Contains("CABLE", StringComparison.OrdinalIgnoreCase));
-                
-                CaptureComboBox.SelectedItem = defaultMic?.FriendlyName 
+
+                CaptureComboBox.SelectedItem = defaultMic?.FriendlyName
                     ?? _captureDevices.FirstOrDefault()?.FriendlyName;
             }
         }
@@ -982,7 +997,7 @@ namespace BoomBx.Views
                 var virtualChain = CreateProcessingChain(_virtualLoopStream, targetFormat, ViewModel.SelectedSound, initialVolume);
                 var speakerChain = CreateProcessingChain(_speakerLoopStream, targetFormat, ViewModel.SelectedSound, initialVolume);
 
-                if (virtualChain?.volume == null || speakerChain?.volume == null)
+                if (virtualChain?.Volume == null || speakerChain?.Volume == null)
                 {
                     UpdateStatus("⚠️ Failed to create processing chain");
                     StopAudioProcessing(updateStatus: false);
@@ -991,16 +1006,16 @@ namespace BoomBx.Views
 
                 if (virtualChain is { } vChain)
                 {
-                    _equalizerVirtual = vChain.eq;
-                    _pitchShifterVirtual = vChain.pitch;
-                    _volumeProviderVirtual = vChain.volume;
+                    _equalizerVirtual = vChain.Eq;
+                    _pitchShifterVirtual = vChain.Pitch;
+                    _volumeProviderVirtual = vChain.Volume;
                 }
 
                 if (speakerChain is { } sChain)
                 {
-                    _equalizerSpeaker = sChain.eq;
-                    _pitchShifterSpeaker = sChain.pitch;
-                    _volumeProviderSpeaker = sChain.volume;
+                    _equalizerSpeaker = sChain.Eq;
+                    _pitchShifterSpeaker = sChain.Pitch;
+                    _volumeProviderSpeaker = sChain.Volume;
                 }
 
                 InitializeVirtualOutput();
@@ -1019,9 +1034,9 @@ namespace BoomBx.Views
                 UpdatePlayPauseButtonState();
             }
         }
-        
 
-        private (EqualizerSampleProvider eq, PitchShifter pitch, VolumeSampleProvider volume)?
+
+        private (EqualizerSampleProvider Eq, PitchShifter Pitch, VolumeSampleProvider Volume)?
             CreateProcessingChain(LoopStream stream, WaveFormat format, SoundItem sound, float volume)
         {
             try
@@ -1050,7 +1065,7 @@ namespace BoomBx.Views
                 return null;
             }
         }
-        
+
         private void InitializeVirtualOutput()
         {
             try
@@ -1071,7 +1086,7 @@ namespace BoomBx.Views
             try
             {
                 if (_volumeProviderSpeaker == null) return;
-                
+
                 using var enumerator = new MMDeviceEnumerator();
                 var defaultSpeaker = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia)
                     ?? throw new InvalidOperationException("No output device found");
@@ -1175,35 +1190,35 @@ namespace BoomBx.Views
                     PlaybackState.Paused => "▶ Resume",
                     _ => "▶ Play"
                 };
-                
+
                 StopButton.IsVisible = _currentPlaybackState != PlaybackState.Stopped;
             });
         }
 
-            private LoopStream? CreateAudioStream(string filePath)
+        private LoopStream? CreateAudioStream(string filePath)
+        {
+            try
             {
-                try
+                WaveStream reader = Path.GetExtension(filePath).ToLower() switch
                 {
-                    WaveStream reader = Path.GetExtension(filePath).ToLower() switch
-                    {
-                        ".mp3" => new Mp3FileReader(filePath),
-                        ".wav" => new WaveFileReader(filePath),
-                        _ => throw new InvalidOperationException("Unsupported file format")
-                    };
-                    if (reader.WaveFormat == null || 
-                        reader.WaveFormat.Channels <= 0 || 
-                        reader.WaveFormat.SampleRate <= 0)
-                    {
-                        throw new InvalidOperationException("Audio file has an invalid format");
-                    }
-                    return new LoopStream(reader);
-                }
-                catch (Exception ex)
+                    ".mp3" => new Mp3FileReader(filePath),
+                    ".wav" => new WaveFileReader(filePath),
+                    _ => throw new InvalidOperationException("Unsupported file format")
+                };
+                if (reader.WaveFormat == null ||
+                    reader.WaveFormat.Channels <= 0 ||
+                    reader.WaveFormat.SampleRate <= 0)
                 {
-                    UpdateStatus($"Error loading audio: {ex.Message}");
-                    return null;
+                    throw new InvalidOperationException("Audio file has an invalid format");
                 }
+                return new LoopStream(reader);
             }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Error loading audio: {ex.Message}");
+                return null;
+            }
+        }
 
         private ISampleProvider ConvertFormat(ISampleProvider input, WaveFormat targetFormat)
         {
@@ -1250,12 +1265,12 @@ namespace BoomBx.Views
                 ViewModel.SelectedSoundboard = selected;
             }
         }
-        
+
         public async void AddSoundboard(object sender, RoutedEventArgs e)
         {
             var dialog = new InputDialog { Prompt = "Enter soundboard name:" };
             var result = await dialog.ShowDialog<string>(this);
-            
+
             if (!string.IsNullOrWhiteSpace(result))
             {
                 var soundboard = new Soundboard { Name = result };
@@ -1268,16 +1283,16 @@ namespace BoomBx.Views
         public async void RenameSoundboard(object sender, RoutedEventArgs e)
         {
             if (ViewModel.SelectedSoundboard == null) return;
-            
+
             var dialog = new InputDialog
             {
                 Title = "Rename Soundboard",
                 Prompt = "Enter new name:",
                 InputText = ViewModel.SelectedSoundboard.Name ?? string.Empty
             };
-            
+
             var newName = await dialog.ShowDialog<string>(this);
-            
+
             if (!string.IsNullOrWhiteSpace(newName))
             {
                 ViewModel.SelectedSoundboard.Name = newName;
@@ -1287,7 +1302,7 @@ namespace BoomBx.Views
 
         public void RemoveSoundboard(object sender, RoutedEventArgs e)
         {
-            if (ViewModel.SelectedSoundboard != null && 
+            if (ViewModel.SelectedSoundboard != null &&
                 ViewModel.Soundboards.Count > 1)
             {
                 ViewModel.Soundboards.Remove(ViewModel.SelectedSoundboard);
@@ -1296,6 +1311,174 @@ namespace BoomBx.Views
             }
         }
 
+
+        #if WINDOWS
+        private void InitializeTts()
+        {
+            #if WINDOWS
+                _synth.SetOutputToNull();
+                RefreshVoices();
+            #endif
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private void RefreshVoices()
+        {
+            #if WINDOWS
+                ViewModel.AvailableVoices.Clear();
+                foreach (var voice in _synth.GetInstalledVoices().Where(v => v.Enabled))
+                {
+                    ViewModel.AvailableVoices.Add(voice.VoiceInfo);
+                }
+                ViewModel.SelectedVoice = ViewModel.AvailableVoices.FirstOrDefault();
+            #endif
+        }
+        #else
+            private void InitializeTts()
+            {
+                ViewModel.AvailableVoices.Clear();
+            }
+        #endif
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private async void PreviewTts_Click(object sender, RoutedEventArgs e)
+        {
+        #if WINDOWS
+            if (string.IsNullOrWhiteSpace(ViewModel.TtsText)) return;
+
+            try
+            {
+                StopAudioProcessing();
+                _ttsAudioStream?.Dispose();
+
+                _ttsAudioStream = new MemoryStream();
+                var formatInfo = new SpeechAudioFormatInfo(44100, AudioBitsPerSample.Sixteen, AudioChannel.Stereo);
+                
+                _synth.SetOutputToAudioStream(_ttsAudioStream, formatInfo);
+                
+                if (ViewModel.SelectedVoice != null)
+                {
+                    _synth.SelectVoice(ViewModel.SelectedVoice.Name);
+                }
+
+                await Task.Run(() => _synth.Speak(ViewModel.TtsText)); 
+                _ttsAudioStream.Position = 0;
+                StartTtsPlayback();
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"TTS Error: {ex.Message}");
+            }
+        #else
+            await Task.CompletedTask;
+        #endif
+        }
+
+        private void StartTtsPlayback()
+        {
+            try
+            {
+                StopAudioProcessing(updateStatus: false);
+
+                var ttsReader = new WaveFileReader(_ttsAudioStream);
+                var loopStream = new LoopStream(ttsReader) { Loop = ViewModel.IsLoopingEnabled };
+
+                var targetFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
+                float initialVolume = (float)(ViewModel.TtsVolume / 100.0);
+
+                var soundParams = new SoundItem
+                {
+                    Volume = ViewModel.TtsVolume,
+                    Pitch = ViewModel.TtsPitch,
+                    Bass = 0,
+                    Treble = 0
+                };
+
+                var virtualChain = CreateProcessingChain(loopStream, targetFormat, soundParams, initialVolume);
+                var speakerChain = CreateProcessingChain(loopStream, targetFormat, soundParams, initialVolume);
+
+                if (virtualChain?.Volume == null || speakerChain?.Volume == null)
+                {
+                    UpdateStatus("⚠️ Failed to create TTS processing chain");
+                    return;
+                }
+
+                // Set up providers
+                _equalizerVirtual = virtualChain.Value.Eq;
+                _pitchShifterVirtual = virtualChain.Value.Pitch;
+                _volumeProviderVirtual = virtualChain.Value.Volume;
+
+                _equalizerSpeaker = speakerChain.Value.Eq;
+                _pitchShifterSpeaker = speakerChain.Value.Pitch;
+                _volumeProviderSpeaker = speakerChain.Value.Volume;
+
+                // Initialize outputs
+                InitializeVirtualOutput();
+                InitializeSpeakerOutput();
+
+                _currentPlaybackState = PlaybackState.Playing;
+                UpdateStatus($"🗣️ Playing TTS: {ViewModel.TtsText.TrimTo(20)}");
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"TTS Playback Error: {ex.Message}");
+            }
+            finally
+            {
+                UpdatePlayPauseButtonState();
+            }
+        }
+
+        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+        private async void SaveTtsAudio_Click(object sender, RoutedEventArgs e)
+        {
+            if (_ttsAudioStream == null) return;
+
+            try
+            {
+                var topLevel = TopLevel.GetTopLevel(this);
+                if (topLevel == null)
+                {
+                    UpdateStatus("Unable to access file system");
+                    return;
+                }
+                var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
+                {
+                    Title = "Save TTS Audio",
+                    SuggestedFileName = $"TTS_{DateTime.Now:yyyyMMddHHmmss}.wav",
+                    FileTypeChoices = new[] 
+                    {
+                        new FilePickerFileType("WAV Audio") 
+                        { 
+                            Patterns = new[] { "*.wav" } 
+                        }
+                    }
+                });
+
+                if (file != null)
+                {
+                    await using var stream = await file.OpenWriteAsync();
+                    _ttsAudioStream.Position = 0;
+                    await _ttsAudioStream.CopyToAsync(stream);
+
+                    var newItem = new SoundItem
+                    {
+                        Path = file.Path.AbsolutePath,
+                        Name = $"TTS: {ViewModel.TtsText.TrimTo(20)}",
+                        Volume = ViewModel.TtsVolume,
+                        Pitch = ViewModel.TtsPitch
+                    };
+
+                    ViewModel.SelectedSoundboard?.Sounds.Add(newItem);
+                    SaveSoundLibrary();
+                    UpdateStatus("💾 TTS audio saved to soundboard!");
+                }
+            }
+            catch (Exception ex)
+            {
+                UpdateStatus($"Save Error: {ex.Message}");
+            }
+        }
 
         //to whoever reading this, i will clean up and optimize i promise LATER
         private void OpenGitHub(object? sender, RoutedEventArgs e)

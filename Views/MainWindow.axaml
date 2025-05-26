@@ -225,9 +225,63 @@
 
                     <Border Background="#2D2D2D" CornerRadius="8" Padding="25"
                             IsVisible="{Binding #TextToSpeechNav.IsChecked}">
-                        <TextBlock Text="Text-to-Speech (Coming Soon)" 
-                                Foreground="#A0A0A0" FontSize="16"
-                                HorizontalAlignment="Center"/>
+                        <StackPanel Spacing="15">
+                            <TextBlock Text="Text-to-Speech" 
+                                    FontSize="22" 
+                                    FontWeight="Bold"
+                                    Foreground="#E0E0E0"
+                                    HorizontalAlignment="Center"/>
+                            
+                            <TextBox Text="{Binding TtsText, Mode=TwoWay}"
+                                    Watermark="Enter text to speak..."
+                                    AcceptsReturn="True"
+                                    Height="100"
+                                    FontSize="14"
+                                    Background="#333333"
+                                    Foreground="White"/>
+                            
+                            <StackPanel Spacing="10">
+                                <ComboBox ItemsSource="{Binding AvailableVoices}"
+                                        SelectedItem="{Binding SelectedVoice}"
+                                        FontSize="14"
+                                        Height="40">
+                                    <ComboBox.ItemTemplate>
+                                        <DataTemplate>
+                                            <TextBlock Text="{Binding Name}"/>
+                                        </DataTemplate>
+                                    </ComboBox.ItemTemplate>
+                                </ComboBox>
+                                
+                                <StackPanel Spacing="10">
+                                    <TextBlock Text="Volume:" Foreground="#E0E0E0"/>
+                                    <Slider Minimum="0" Maximum="100" 
+                                            Value="{Binding TtsVolume, Mode=TwoWay}"
+                                            Foreground="#007ACC"/>
+                                    
+                                    <TextBlock Text="Pitch:" Foreground="#E0E0E0"/>
+                                    <Slider Minimum="0.5" Maximum="2.0" 
+                                            Value="{Binding TtsPitch, Mode=TwoWay}"
+                                            Foreground="#007ACC"/>
+                                    
+                                    <TextBlock Text="Speed:" Foreground="#E0E0E0"/>
+                                    <Slider Minimum="0.5" Maximum="2.0" 
+                                            Value="{Binding TtsSpeed, Mode=TwoWay}"
+                                            Foreground="#007ACC"/>
+                                </StackPanel>
+                            </StackPanel>
+
+                            <StackPanel Orientation="Horizontal" Spacing="10" HorizontalAlignment="Center">
+                                <Button Content="▶ Preview" 
+                                        Click="PreviewTts_Click"
+                                        Width="120"
+                                        Background="#007ACC"/>
+                                
+                                <Button Content="💾 Save Audio" 
+                                        Click="SaveTtsAudio_Click"
+                                        Width="120"
+                                        Background="#404040"/>
+                            </StackPanel>
+                        </StackPanel>
                     </Border>
 
                     <Border Background="#2D2D2D" CornerRadius="8" Padding="25"

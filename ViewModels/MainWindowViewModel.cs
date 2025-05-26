@@ -1,6 +1,7 @@
 ﻿using BoomBx.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 using System.Collections.ObjectModel;
+using System.Speech.Synthesis;
 
 namespace BoomBx.ViewModels
 {
@@ -32,5 +33,23 @@ namespace BoomBx.ViewModels
         {
             SelectedFilePath = value?.Path ?? string.Empty;
         }
+
+        [ObservableProperty]
+        private string _ttsText = "";
+        
+        [ObservableProperty]
+        private double _ttsVolume = 100;
+        
+        [ObservableProperty]
+        private double _ttsPitch = 1.0;
+        
+        [ObservableProperty]
+        private double _ttsSpeed = 1.0;
+
+        [ObservableProperty]
+        private ObservableCollection<VoiceInfo> _availableVoices = new();
+
+        [ObservableProperty]
+        private VoiceInfo? _selectedVoice;
     }
 }
