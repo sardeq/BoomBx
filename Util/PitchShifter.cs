@@ -1,6 +1,7 @@
 using NAudio.Wave;
 using NAudio.Dsp;
 using NAudio.Wave.SampleProviders;
+using System;
 
 public class PitchShifter : ISampleProvider
 {
@@ -8,6 +9,9 @@ public class PitchShifter : ISampleProvider
     
     public PitchShifter(ISampleProvider source)
     {
+        if (source == null) throw new ArgumentNullException(nameof(source));
+        if (source.WaveFormat == null) throw new ArgumentException("Source has no WaveFormat", nameof(source));
+
         _shifter = new SmbPitchShiftingSampleProvider(source.ToStereo())
         {
             PitchFactor = 1.0f

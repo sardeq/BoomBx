@@ -940,7 +940,6 @@ namespace BoomBx.Views
             {
                 StopAudioProcessing(updateStatus: false);
 
-                // Validate prerequisites
                 if (ViewModel.SelectedSound == null)
                 {
                     UpdateStatus("🔇 No sound selected");
@@ -953,38 +952,43 @@ namespace BoomBx.Views
                     return;
                 }
 
-                // Initialize audio streams with safe disposal
-                using var tempVirtualStream = CreateAudioStream(ViewModel.SelectedSound.Path);
-                using var tempSpeakerStream = CreateAudioStream(ViewModel.SelectedSound.Path);
-                
+                var tempVirtualStream = CreateAudioStream(ViewModel.SelectedSound.Path);
+                var tempSpeakerStream = CreateAudioStream(ViewModel.SelectedSound.Path);
+
                 if (tempVirtualStream == null || tempSpeakerStream == null)
                 {
                     UpdateStatus("⚠️ Failed to initialize audio streams");
+                    tempVirtualStream?.Dispose();
+                    tempSpeakerStream?.Dispose();
                     return;
                 }
 
-                // Create permanent references only after validation
+                if (tempVirtualStream.WaveFormat == null || tempSpeakerStream.WaveFormat == null)
+                {
+                    UpdateStatus("⚠️ Audio stream has invalid format");
+                    tempVirtualStream.Dispose();
+                    tempSpeakerStream.Dispose();
+                    return;
+                }
+
                 _virtualLoopStream = tempVirtualStream;
                 _speakerLoopStream = tempSpeakerStream;
                 _virtualLoopStream.Loop = ViewModel.IsLoopingEnabled;
                 _speakerLoopStream.Loop = ViewModel.IsLoopingEnabled;
 
-                // Configure audio pipeline
                 var targetFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
                 float initialVolume = (float)(ViewModel.SelectedSound.Volume / 100.0);
 
-                // Build processing chain with null checks
                 var virtualChain = CreateProcessingChain(_virtualLoopStream, targetFormat, ViewModel.SelectedSound, initialVolume);
                 var speakerChain = CreateProcessingChain(_speakerLoopStream, targetFormat, ViewModel.SelectedSound, initialVolume);
 
-                // Check if either chain failed to create
                 if (virtualChain?.volume == null || speakerChain?.volume == null)
                 {
-                    UpdateStatus("⚠️ Failed to create audio processors");
+                    UpdateStatus("⚠️ Failed to create processing chain");
+                    StopAudioProcessing(updateStatus: false);
                     return;
                 }
 
-                // Store references
                 if (virtualChain is { } vChain)
                 {
                     _equalizerVirtual = vChain.eq;
@@ -999,7 +1003,6 @@ namespace BoomBx.Views
                     _volumeProviderSpeaker = sChain.volume;
                 }
 
-                // Initialize output devices
                 InitializeVirtualOutput();
                 InitializeSpeakerOutput();
 
@@ -1023,8 +1026,18 @@ namespace BoomBx.Views
         {
             try
             {
-                var provider = ConvertFormat(stream.ToSampleProvider(), format);
+                if (stream == null) throw new ArgumentNullException(nameof(stream));
+                if (sound == null) throw new ArgumentNullException(nameof(sound));
+                if (stream.WaveFormat == null) throw new InvalidOperationException("Stream has no WaveFormat");
+
+                var sampleProvider = stream.ToSampleProvider();
+                if (sampleProvider == null) throw new InvalidOperationException("ToSampleProvider returned null");
+                if (sampleProvider.WaveFormat == null) throw new InvalidOperationException("Sample provider has no WaveFormat");
+
+                var provider = ConvertFormat(sampleProvider, format);
                 if (provider == null) throw new InvalidOperationException("Format conversion returned null");
+                if (provider.WaveFormat == null) throw new InvalidOperationException("Converted provider has no WaveFormat");
+
                 var eq = new EqualizerSampleProvider(provider, sound);
                 var pitch = new PitchShifter(eq);
                 var vol = new VolumeSampleProvider(pitch) { Volume = volume };
@@ -1099,47 +1112,47 @@ namespace BoomBx.Views
             UpdatePlayPauseButtonState();
         }
 
-            private void StopAudioProcessing(bool updateStatus = true)
+        private void StopAudioProcessing(bool updateStatus = true)
+        {
+            try
             {
-                try
+                _currentPlaybackState = PlaybackState.Stopped;
+
+                // Stop and dispose outputs
+                _audioWaveOutSpeaker?.Stop();
+                _audioWaveOutSpeaker?.Dispose();
+
+                // Remove from mixer first
+                if (_persistentMixer != null && _volumeProviderVirtual != null)
                 {
-                    _currentPlaybackState = PlaybackState.Stopped;
-
-                    // Stop and dispose outputs
-                    _audioWaveOutSpeaker?.Stop();
-                    _audioWaveOutSpeaker?.Dispose();
-
-                    // Remove from mixer first
-                    if (_persistentMixer != null && _volumeProviderVirtual != null)
-                    {
-                        _persistentMixer.RemoveMixerInput(_volumeProviderVirtual);
-                    }
-
-                    // Dispose stream resources
-                    _virtualLoopStream?.Dispose();
-                    _speakerLoopStream?.Dispose();
-
-                    // Reset all references
-                    _equalizerVirtual = null;
-                    _equalizerSpeaker = null;
-                    _pitchShifterVirtual = null;
-                    _pitchShifterSpeaker = null;
-                    _volumeProviderVirtual = null;
-                    _volumeProviderSpeaker = null;
-                    _virtualLoopStream = null;
-                    _speakerLoopStream = null;
-
-                    if (updateStatus) UpdateStatus("⏹ Playback stopped");
+                    _persistentMixer.RemoveMixerInput(_volumeProviderVirtual);
                 }
-                catch (Exception ex)
-                {
-                    UpdateStatus($"⚠️ Stop error: {ex.Message}");
-                }
-                finally
-                {
-                    UpdatePlayPauseButtonState();
-                }
+
+                // Dispose stream resources
+                _virtualLoopStream?.Dispose();
+                _speakerLoopStream?.Dispose();
+
+                // Reset all references
+                _equalizerVirtual = null;
+                _equalizerSpeaker = null;
+                _pitchShifterVirtual = null;
+                _pitchShifterSpeaker = null;
+                _volumeProviderVirtual = null;
+                _volumeProviderSpeaker = null;
+                _virtualLoopStream = null;
+                _speakerLoopStream = null;
+
+                if (updateStatus) UpdateStatus("⏹ Playback stopped");
             }
+            catch (Exception ex)
+            {
+                UpdateStatus($"⚠️ Stop error: {ex.Message}");
+            }
+            finally
+            {
+                UpdatePlayPauseButtonState();
+            }
+        }
 
             private void UpdatePlayPauseButtonState()
             {
@@ -1154,24 +1167,30 @@ namespace BoomBx.Views
                 });
             }
 
-        private LoopStream? CreateAudioStream(string filePath)
-        {
-            try
+            private LoopStream? CreateAudioStream(string filePath)
             {
-                WaveStream reader = Path.GetExtension(filePath).ToLower() switch
+                try
                 {
-                    ".mp3" => new Mp3FileReader(filePath),
-                    ".wav" => new WaveFileReader(filePath),
-                    _ => throw new InvalidOperationException("Unsupported file format")
-                };
-                return new LoopStream(reader);
+                    WaveStream reader = Path.GetExtension(filePath).ToLower() switch
+                    {
+                        ".mp3" => new Mp3FileReader(filePath),
+                        ".wav" => new WaveFileReader(filePath),
+                        _ => throw new InvalidOperationException("Unsupported file format")
+                    };
+                    if (reader.WaveFormat == null || 
+                        reader.WaveFormat.Channels <= 0 || 
+                        reader.WaveFormat.SampleRate <= 0)
+                    {
+                        throw new InvalidOperationException("Audio file has an invalid format");
+                    }
+                    return new LoopStream(reader);
+                }
+                catch (Exception ex)
+                {
+                    UpdateStatus($"Error loading audio: {ex.Message}");
+                    return null;
+                }
             }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Error loading audio: {ex.Message}");
-                return null;
-            }
-        }
 
         private ISampleProvider ConvertFormat(ISampleProvider input, WaveFormat targetFormat)
         {
