@@ -42,11 +42,8 @@ namespace BoomBx.Models
             get => _volume;
             set
             {
-                if (Math.Abs(_volume - value) > 0.01)
-                {
-                    _volume = value;
-                    OnPropertyChanged();
-                }
+                _volume = value;
+                OnPropertyChanged();
             }
         }
 

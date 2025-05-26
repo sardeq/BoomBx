@@ -1040,6 +1040,7 @@ namespace BoomBx.Views
 
                 var eq = new EqualizerSampleProvider(provider, sound);
                 var pitch = new PitchShifter(eq);
+                pitch.SetPitch((float)sound.Pitch);
                 var vol = new VolumeSampleProvider(pitch) { Volume = volume };
                 return (eq, pitch, vol);
             }
@@ -1076,6 +1077,7 @@ namespace BoomBx.Views
                     ?? throw new InvalidOperationException("No output device found");
 
                 _audioWaveOutSpeaker = new WasapiOut(defaultSpeaker, AudioClientShareMode.Shared, true, 100);
+                _audioWaveOutSpeaker.PlaybackStopped += HandlePlaybackStopped;
                 _audioWaveOutSpeaker.Init(_volumeProviderSpeaker);
                 _audioWaveOutSpeaker.Play();
             }
@@ -1084,6 +1086,19 @@ namespace BoomBx.Views
                 UpdateStatus($"🔈 Speaker error: {ex.Message}");
                 StopAudioProcessing(updateStatus: false);
             }
+        }
+
+        private void HandlePlaybackStopped(object? sender, StoppedEventArgs args)
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                if (_currentPlaybackState == PlaybackState.Playing && args.Exception == null)
+                {
+                    StopAudioProcessing();
+                    UpdatePlayPauseButtonState();
+                    UpdateStatus("Playback completed");
+                }
+            });
         }
 
         private void PauseAudioProcessing()
@@ -1118,21 +1133,17 @@ namespace BoomBx.Views
             {
                 _currentPlaybackState = PlaybackState.Stopped;
 
-                // Stop and dispose outputs
                 _audioWaveOutSpeaker?.Stop();
                 _audioWaveOutSpeaker?.Dispose();
 
-                // Remove from mixer first
                 if (_persistentMixer != null && _volumeProviderVirtual != null)
                 {
                     _persistentMixer.RemoveMixerInput(_volumeProviderVirtual);
                 }
 
-                // Dispose stream resources
                 _virtualLoopStream?.Dispose();
                 _speakerLoopStream?.Dispose();
 
-                // Reset all references
                 _equalizerVirtual = null;
                 _equalizerSpeaker = null;
                 _pitchShifterVirtual = null;
@@ -1154,18 +1165,20 @@ namespace BoomBx.Views
             }
         }
 
-            private void UpdatePlayPauseButtonState()
+        private void UpdatePlayPauseButtonState()
+        {
+            Dispatcher.UIThread.Post(() =>
             {
-                Dispatcher.UIThread.Post(() =>
+                PlayPauseButton.Content = _currentPlaybackState switch
                 {
-                    PlayPauseButton.Content = _currentPlaybackState switch
-                    {
-                        PlaybackState.Playing => "⏸ Pause",
-                        PlaybackState.Paused => "▶ Resume",
-                        _ => "▶ Play"
-                    };
-                });
-            }
+                    PlaybackState.Playing => "⏸ Pause",
+                    PlaybackState.Paused => "▶ Resume",
+                    _ => "▶ Play"
+                };
+                
+                StopButton.IsVisible = _currentPlaybackState != PlaybackState.Stopped;
+            });
+        }
 
             private LoopStream? CreateAudioStream(string filePath)
             {
