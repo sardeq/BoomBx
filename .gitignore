@@ -8,3 +8,9 @@ obj/
 
 *.db
 
+Services/
+Converters/
+ViewModels/
+Util/
+
+

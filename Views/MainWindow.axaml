@@ -304,9 +304,16 @@
                                             FontSize="12"
                                             FontWeight="Bold"/>
                                     <ComboBox x:Name="PlaybackComboBox" 
-                                            Height="40" 
-                                            FontSize="14"
-                                            SelectionChanged="PlaybackDeviceChanged"/>
+                                        ItemsSource="{Binding PlaybackDevices}"
+                                        SelectedItem="{Binding SelectedPlaybackDevice}"
+                                        Height="40" 
+                                        FontSize="14">
+                                        <ComboBox.ItemTemplate>
+                                            <DataTemplate>
+                                                <TextBlock Text="{Binding FriendlyName}"/>
+                                            </DataTemplate>
+                                        </ComboBox.ItemTemplate>
+                                    </ComboBox>
                                 </StackPanel>
 
                                 <StackPanel Spacing="5">
@@ -314,10 +321,17 @@
                                             Foreground="#A0A0A0"
                                             FontSize="12"
                                             FontWeight="Bold"/>
-                                    <ComboBox x:Name="CaptureComboBox" 
-                                            Height="40" 
-                                            FontSize="14"
-                                            SelectionChanged="CaptureDeviceChanged"/>
+                                            <ComboBox x:Name="CaptureComboBox" 
+                                                ItemsSource="{Binding CaptureDevices}"
+                                                SelectedItem="{Binding SelectedCaptureDevice}"
+                                                Height="40" 
+                                                FontSize="14">
+                                                <ComboBox.ItemTemplate>
+                                                    <DataTemplate>
+                                                        <TextBlock Text="{Binding FriendlyName}"/>
+                                                    </DataTemplate>
+                                                </ComboBox.ItemTemplate>
+                                            </ComboBox>
                                 </StackPanel>
                             </StackPanel>
 

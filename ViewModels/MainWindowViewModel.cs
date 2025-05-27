@@ -1,5 +1,6 @@
 ﻿using BoomBx.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
+using NAudio.CoreAudioApi;
 using System.Collections.ObjectModel;
 using System.Speech.Synthesis;
 
@@ -7,6 +8,14 @@ namespace BoomBx.ViewModels
 {
     public partial class MainWindowViewModel : ObservableObject
     {
+
+        public MainWindowViewModel()
+        {
+            _appVersion = $"Version {AppVersionHelper.GetInformationalVersion()}";
+            PlaybackDevices = new ObservableCollection<MMDevice>();
+            CaptureDevices = new ObservableCollection<MMDevice>();
+        }
+
         [ObservableProperty]
         private string? _appVersion;
 
@@ -24,11 +33,6 @@ namespace BoomBx.ViewModels
 
         public ObservableCollection<Soundboard> Soundboards { get; } = new();
 
-        public MainWindowViewModel()
-        {
-            _appVersion = $"Version {AppVersionHelper.GetInformationalVersion()}";
-        }
-
         partial void OnSelectedSoundChanged(SoundItem? value)
         {
             SelectedFilePath = value?.Path ?? string.Empty;
@@ -36,20 +40,32 @@ namespace BoomBx.ViewModels
 
         [ObservableProperty]
         private string _ttsText = "";
-        
+
         [ObservableProperty]
         private double _ttsVolume = 100;
-        
+
         [ObservableProperty]
         private double _ttsPitch = 1.0;
-        
+
         [ObservableProperty]
         private double _ttsSpeed = 1.0;
 
         [ObservableProperty]
-        private ObservableCollection<VoiceInfo> _availableVoices = new();
+        private ObservableCollection<VoiceInfo> _availableVoices = [];
 
         [ObservableProperty]
         private VoiceInfo? _selectedVoice;
+        
+        [ObservableProperty]
+        private ObservableCollection<MMDevice> _playbackDevices = new();
+
+        [ObservableProperty]
+        private ObservableCollection<MMDevice> _captureDevices = new();
+
+        [ObservableProperty]
+        private MMDevice? _selectedPlaybackDevice;
+
+        [ObservableProperty]
+        private MMDevice? _selectedCaptureDevice;
     }
 }

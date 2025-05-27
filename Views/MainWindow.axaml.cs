@@ -33,39 +33,30 @@ using System.Text.Json.Serialization;
 using Avalonia.Input;
 using System.Speech.Synthesis;
 using System.Speech.AudioFormat;
+using BoomBx.Services;
 
 namespace BoomBx.Views
 {
     public partial class MainWindow : Window
     {
+        private DeviceManager _deviceManager;
+        private readonly AppSettings _settings = new();
+
+
         private List<MMDevice> _playbackDevices = new();
         private List<MMDevice> _captureDevices = new();
         private bool _installationDismissed;
-        //private IWavePlayer? _micWaveOut;
-        //private IWavePlayer? _audioWaveOut;
-        private WasapiCapture? _micCapture;
-        private List<Process> _activeProcesses = new();
-        //private bool _isPlaying;
-        //private LoopStream? _loopedAudio;
         private IWavePlayer? _audioWaveOutSpeaker;
-        //private LoopStream? _loopedAudioSpeaker;
-
-        //private VolumeSampleProvider? _volumeProvider;
         private VolumeSampleProvider? _volumeProviderVirtual;
         private VolumeSampleProvider? _volumeProviderSpeaker;
         private MixingSampleProvider? _persistentMixer;
-        private IWavePlayer? _persistentOutput;
         private SoundItem? _currentSoundSubscription;
-        private AppSettings _settings = new AppSettings();
-
         private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
         private Func<Task>? _closeSplashAction;
         private enum PlaybackState { Stopped, Playing, Paused }
         private PlaybackState _currentPlaybackState = PlaybackState.Stopped;
         private LoopStream? _virtualLoopStream;
         private LoopStream? _speakerLoopStream;
-        private long _pausePositionVirtual;
-        private long _pausePositionSpeaker;
 
         private void MinimizeClick(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
         private void MaximizeClick(object? sender, RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
@@ -106,6 +97,12 @@ namespace BoomBx.Views
             }
         }
 
+        protected override void OnClosed(EventArgs e)
+        {
+            _deviceManager.Dispose();
+            base.OnClosed(e);
+        }
+
         public new void Show()
         {
             if (!IsVisible)
@@ -122,6 +119,11 @@ namespace BoomBx.Views
             this.Styles.Add(new FluentTheme());
             InitializeComponent();
             DataContext = new MainWindowViewModel();
+            _deviceManager = new DeviceManager(
+                (MainWindowViewModel)DataContext, 
+                _settings,
+                Dispatcher.UIThread
+            );
 
             #if WINDOWS
                 InitializeTts();
@@ -129,7 +131,6 @@ namespace BoomBx.Views
 
             this.ShowInTaskbar = true;
             this.WindowState = WindowState.Normal;
-            //this.CanResize = false;
             this.Opacity = 1;
             this.IsVisible = false;
             Console.WriteLine("[3] Window properties set");
@@ -334,12 +335,7 @@ namespace BoomBx.Views
                         : "";
                 });
 
-                await LoadAudioDevicesAsync();
-
-                // if (!needsInstallation)
-                // {
-                //     await LoadAudioDevicesAsync();
-                // }
+                await _deviceManager.InitializeAsync();
 
                 Console.WriteLine("[11] Initialization complete");
             }
@@ -403,13 +399,13 @@ namespace BoomBx.Views
 
                     if (success)
                     {
-                        await LoadAudioDevicesAsync();
+                        await _deviceManager.InitializeAsync();
                     }
                 });
 
                 if (!success && CheckVBCableInstallation())
                 {
-                    await LoadAudioDevicesAsync();
+                    await _deviceManager.InitializeAsync();
                     UpdateStatus("Manual installation required - Download from vb-audio.com", true);
                 }
             }
@@ -565,7 +561,7 @@ namespace BoomBx.Views
                     }
 
                     UpdateStatus("VB-Cable installed successfully!");
-                    await LoadAudioDevicesAsync();
+                    await _deviceManager.InitializeAsync();
                     return true;
                 }
 
@@ -621,139 +617,20 @@ namespace BoomBx.Views
             });
         }
 
-        private async Task LoadAudioDevicesAsync()
-        {
-            try
-            {
-                await Dispatcher.UIThread.InvokeAsync(() =>
-                {
-                    using var enumerator = new MMDeviceEnumerator();
-
-                    var playback = enumerator
-                        .EnumerateAudioEndPoints(DataFlow.Render, DeviceState.Active)
-                        .OrderBy(d => d.FriendlyName)
-                        .ToList();
-
-                    var capture = enumerator
-                        .EnumerateAudioEndPoints(DataFlow.Capture, DeviceState.Active)
-                        .OrderBy(d => d.FriendlyName)
-                        .ToList();
-
-                    _playbackDevices = playback;
-                    _captureDevices = capture;
-
-                    PlaybackComboBox.ItemsSource = playback.Select(d => d.FriendlyName);
-                    CaptureComboBox.ItemsSource = capture.Select(d => d.FriendlyName);
-
-                    LoadDeviceSettings();
-
-                    SelectDefaultDevices();
-                });
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Device Error: {ex.Message}");
-            }
-        }
-
-        private void LoadDeviceSettings()
-        {
-            var appDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "BoomBx");
-            Directory.CreateDirectory(appDataDir);
-            var path = Path.Combine(appDataDir, "settings.json");
-            if (!File.Exists(path))
-            {
-                _settings = new AppSettings();
-                File.WriteAllText(path, JsonSerializer.Serialize(_settings));
-            }
-            else
-            {
-                var json = File.ReadAllText(path);
-                _settings = JsonSerializer.Deserialize<AppSettings>(json) ?? new AppSettings();
-            }
-
-            if (!string.IsNullOrEmpty(_settings.LastPlaybackDevice))
-            {
-                PlaybackComboBox.SelectedItem = _playbackDevices
-                    .FirstOrDefault(d => d.FriendlyName == _settings.LastPlaybackDevice)?.FriendlyName;
-            }
-
-            if (!string.IsNullOrEmpty(_settings.LastCaptureDevice))
-            {
-                CaptureComboBox.SelectedItem = _captureDevices
-                    .FirstOrDefault(d => d.FriendlyName == _settings.LastCaptureDevice)?.FriendlyName;
-            }
-        }
-
-        private void SaveDeviceSettings()
-        {
-            _settings.LastPlaybackDevice = PlaybackComboBox.SelectedItem?.ToString();
-            _settings.LastCaptureDevice = CaptureComboBox.SelectedItem?.ToString();
-
-            var appDataDir = Path.Combine(
-                Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
-                "BoomBx"
-            );
-            Directory.CreateDirectory(appDataDir);
-            var path = Path.Combine(appDataDir, "settings.json");
-            File.WriteAllText(path, JsonSerializer.Serialize(_settings));
-        }
-
         public void PlaybackDeviceChanged(object? sender, SelectionChangedEventArgs e)
         {
-            if (PlaybackComboBox.SelectedIndex >= 0)
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is MMDevice device)
             {
-                SaveDeviceSettings();
-                StartPersistentAudioRouting();
+                _deviceManager.HandlePlaybackDeviceChanged(device);
             }
         }
 
         public void CaptureDeviceChanged(object? sender, SelectionChangedEventArgs e)
         {
-            if (CaptureComboBox.SelectedIndex >= 0)
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is MMDevice device)
             {
-                SaveDeviceSettings();
-                StartPersistentAudioRouting();
+                _deviceManager.HandleCaptureDeviceChanged(device);
             }
-        }
-
-        private void StartPersistentAudioRouting()
-        {
-            StopPersistentAudioRouting();
-
-            if (PlaybackComboBox.SelectedIndex == -1 || CaptureComboBox.SelectedIndex == -1)
-                return;
-
-            var playbackDevice = _playbackDevices[PlaybackComboBox.SelectedIndex];
-            var captureDevice = _captureDevices[CaptureComboBox.SelectedIndex];
-
-            var targetFormat = WaveFormat.CreateIeeeFloatWaveFormat(48000, 2);
-            _persistentMixer = new MixingSampleProvider(targetFormat);
-            _persistentMixer.ReadFully = true;
-
-            _micCapture = new WasapiCapture(captureDevice);
-            var micProvider = new WaveInProvider(_micCapture);
-            var micSampleProvider = ConvertFormat(micProvider.ToSampleProvider(), targetFormat);
-            _persistentMixer.AddMixerInput(micSampleProvider);
-
-            _persistentOutput = new WasapiOut(playbackDevice, AudioClientShareMode.Shared, true, 100);
-            _persistentOutput.Init(_persistentMixer);
-
-            _micCapture.StartRecording();
-            _persistentOutput.Play();
-        }
-
-        private void StopPersistentAudioRouting()
-        {
-            _persistentOutput?.Stop();
-            _micCapture?.StopRecording();
-
-            _persistentOutput?.Dispose();
-            _micCapture?.Dispose();
-
-            _persistentOutput = null;
-            _micCapture = null;
-            _persistentMixer = null;
         }
 
         public async void AddToLibrary(object? sender, RoutedEventArgs e)
@@ -1070,9 +947,10 @@ namespace BoomBx.Views
         {
             try
             {
-                if (_persistentMixer != null && _volumeProviderVirtual != null)
+                if (_volumeProviderVirtual != null && 
+                    _deviceManager.IsUsingVirtualOutput)
                 {
-                    _persistentMixer.AddMixerInput(_volumeProviderVirtual);
+                    _deviceManager.AddMixerInput(_volumeProviderVirtual);
                 }
             }
             catch (Exception ex)
@@ -1148,17 +1026,21 @@ namespace BoomBx.Views
             {
                 _currentPlaybackState = PlaybackState.Stopped;
 
+                // Stop and dispose speaker output
                 _audioWaveOutSpeaker?.Stop();
                 _audioWaveOutSpeaker?.Dispose();
 
-                if (_persistentMixer != null && _volumeProviderVirtual != null)
+                // Remove virtual output from mixer
+                if (_volumeProviderVirtual != null)
                 {
-                    _persistentMixer.RemoveMixerInput(_volumeProviderVirtual);
+                    _deviceManager.RemoveMixerInput(_volumeProviderVirtual);
                 }
 
+                // Dispose audio streams
                 _virtualLoopStream?.Dispose();
                 _speakerLoopStream?.Dispose();
 
+                // Reset processing chain
                 _equalizerVirtual = null;
                 _equalizerSpeaker = null;
                 _pitchShifterVirtual = null;
