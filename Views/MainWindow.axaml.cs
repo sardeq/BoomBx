@@ -39,7 +39,7 @@ namespace BoomBx.Views
 {
     public partial class MainWindow : Window
     {
-        private DeviceManager _deviceManager;
+
         private readonly AppSettings _settings = new();
 
 
@@ -57,24 +57,10 @@ namespace BoomBx.Views
         private PlaybackState _currentPlaybackState = PlaybackState.Stopped;
         private LoopStream? _virtualLoopStream;
         private LoopStream? _speakerLoopStream;
-
-        private void MinimizeClick(object? sender, RoutedEventArgs e) => WindowState = WindowState.Minimized;
-        private void MaximizeClick(object? sender, RoutedEventArgs e) => WindowState = WindowState == WindowState.Maximized ? WindowState.Normal : WindowState.Maximized;
-        private void CloseClick(object? sender, RoutedEventArgs e) => Close();
-
         private EqualizerSampleProvider? _equalizerVirtual;
         private EqualizerSampleProvider? _equalizerSpeaker;
         private PitchShifter? _pitchShifterVirtual;
         private PitchShifter? _pitchShifterSpeaker;
-        
-        #if WINDOWS
-            private SpeechSynthesizer _synth = new();
-        #else
-                private object _synth = new();
-        #endif
-        
-        private MemoryStream? _ttsAudioStream;
-
 
         private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
         {
@@ -125,9 +111,8 @@ namespace BoomBx.Views
                 Dispatcher.UIThread
             );
 
-            #if WINDOWS
-                InitializeTts();
-            #endif
+
+            InitializeTts();
 
             this.ShowInTaskbar = true;
             this.WindowState = WindowState.Normal;
@@ -258,32 +243,6 @@ namespace BoomBx.Views
             {
                 UpdateStatus($"⚠️ Update failed: {ex.Message}");
             }
-        }
-
-        private void UpdateVolume(SoundItem soundItem)
-        {
-            float newVolume = (float)soundItem.Volume / 100f;
-
-            if (_volumeProviderVirtual != null)
-                _volumeProviderVirtual.Volume = newVolume;
-
-            if (_volumeProviderSpeaker != null)
-                _volumeProviderSpeaker.Volume = newVolume;
-        }
-
-        private void UpdateEqualization(SoundItem soundItem)
-        {
-            _equalizerVirtual?.UpdateFilters(soundItem);
-            _equalizerSpeaker?.UpdateFilters(soundItem);
-        }
-
-        private void UpdatePitch(SoundItem soundItem)
-        {
-            if (_pitchShifterVirtual != null)
-                _pitchShifterVirtual.PitchFactor = (float)soundItem.Pitch;
-
-            if (_pitchShifterSpeaker != null)
-                _pitchShifterSpeaker.PitchFactor = (float)soundItem.Pitch;
         }
 
         private void PlayPauseHandler(object? sender, RoutedEventArgs e)
@@ -617,22 +576,6 @@ namespace BoomBx.Views
             });
         }
 
-        public void PlaybackDeviceChanged(object? sender, SelectionChangedEventArgs e)
-        {
-            if (e.AddedItems.Count > 0 && e.AddedItems[0] is MMDevice device)
-            {
-                _deviceManager.HandlePlaybackDeviceChanged(device);
-            }
-        }
-
-        public void CaptureDeviceChanged(object? sender, SelectionChangedEventArgs e)
-        {
-            if (e.AddedItems.Count > 0 && e.AddedItems[0] is MMDevice device)
-            {
-                _deviceManager.HandleCaptureDeviceChanged(device);
-            }
-        }
-
         public async void AddToLibrary(object? sender, RoutedEventArgs e)
         {
             if (ViewModel.SelectedSoundboard == null) return;
@@ -791,27 +734,6 @@ namespace BoomBx.Views
             // Removed automatic SaveSoundLibrary call to wait for explicit save
         }
 
-        private void SelectDefaultDevices()
-        {
-            if (string.IsNullOrEmpty(_settings.LastPlaybackDevice))
-            {
-                var cableInput = _playbackDevices.FirstOrDefault(d =>
-                    d.FriendlyName.Contains("CABLE Input", StringComparison.OrdinalIgnoreCase));
-
-                PlaybackComboBox.SelectedItem = cableInput?.FriendlyName
-                    ?? _playbackDevices.FirstOrDefault()?.FriendlyName;
-            }
-
-            if (string.IsNullOrEmpty(_settings.LastCaptureDevice))
-            {
-                var defaultMic = _captureDevices.FirstOrDefault(d =>
-                    !d.FriendlyName.Contains("CABLE", StringComparison.OrdinalIgnoreCase));
-
-                CaptureComboBox.SelectedItem = defaultMic?.FriendlyName
-                    ?? _captureDevices.FirstOrDefault()?.FriendlyName;
-            }
-        }
-
         public void PlayThroughDeviceHandler(object? sender, RoutedEventArgs e)
         {
             try
@@ -926,7 +848,7 @@ namespace BoomBx.Views
                 if (sampleProvider == null) throw new InvalidOperationException("ToSampleProvider returned null");
                 if (sampleProvider.WaveFormat == null) throw new InvalidOperationException("Sample provider has no WaveFormat");
 
-                var provider = ConvertFormat(sampleProvider, format);
+                var provider = DeviceManager.ConvertFormat(sampleProvider, format);
                 if (provider == null) throw new InvalidOperationException("Format conversion returned null");
                 if (provider.WaveFormat == null) throw new InvalidOperationException("Converted provider has no WaveFormat");
 
@@ -940,44 +862,6 @@ namespace BoomBx.Views
             {
                 UpdateStatus($"⚠️ Processing chain error: {ex.Message} (Type: {ex.GetType().Name})");
                 return null;
-            }
-        }
-
-        private void InitializeVirtualOutput()
-        {
-            try
-            {
-                if (_volumeProviderVirtual != null && 
-                    _deviceManager.IsUsingVirtualOutput)
-                {
-                    _deviceManager.AddMixerInput(_volumeProviderVirtual);
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"🔇 Virtual output error: {ex.Message}");
-            }
-        }
-
-        private void InitializeSpeakerOutput()
-        {
-            try
-            {
-                if (_volumeProviderSpeaker == null) return;
-
-                using var enumerator = new MMDeviceEnumerator();
-                var defaultSpeaker = enumerator.GetDefaultAudioEndpoint(DataFlow.Render, Role.Multimedia)
-                    ?? throw new InvalidOperationException("No output device found");
-
-                _audioWaveOutSpeaker = new WasapiOut(defaultSpeaker, AudioClientShareMode.Shared, true, 100);
-                _audioWaveOutSpeaker.PlaybackStopped += HandlePlaybackStopped;
-                _audioWaveOutSpeaker.Init(_volumeProviderSpeaker);
-                _audioWaveOutSpeaker.Play();
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"🔈 Speaker error: {ex.Message}");
-                StopAudioProcessing(updateStatus: false);
             }
         }
 
@@ -1102,43 +986,6 @@ namespace BoomBx.Views
             }
         }
 
-        private ISampleProvider ConvertFormat(ISampleProvider input, WaveFormat targetFormat)
-        {
-            if (input.WaveFormat.Channels != targetFormat.Channels)
-            {
-                if (targetFormat.Channels == 2)
-                {
-                    if (input.WaveFormat.Channels == 1)
-                    {
-                        input = new MonoToStereoSampleProvider(input);
-                    }
-                    else if (input.WaveFormat.Channels > 2)
-                    {
-                        input = new DownmixToStereoSampleProvider(input);
-                    }
-                    // If already 2 channels, no conversion needed
-                }
-                else if (targetFormat.Channels == 1)
-                {
-                    if (input.WaveFormat.Channels == 2)
-                    {
-                        input = new StereoToMonoSampleProvider(input);
-                    }
-                    else if (input.WaveFormat.Channels > 2)
-                    {
-                        throw new NotSupportedException("Downmixing to mono from multi-channel not implemented");
-                    }
-                    // If already 1 channel, no conversion needed
-                }
-            }
-
-            if (input.WaveFormat.SampleRate != targetFormat.SampleRate)
-            {
-                input = new WdlResamplingSampleProvider(input, targetFormat.SampleRate);
-            }
-
-            return input;
-        }
 
         private void SoundboardList_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
@@ -1190,175 +1037,6 @@ namespace BoomBx.Views
                 ViewModel.Soundboards.Remove(ViewModel.SelectedSoundboard);
                 ViewModel.SelectedSoundboard = ViewModel.Soundboards.FirstOrDefault();
                 SaveSoundLibrary();
-            }
-        }
-
-
-        #if WINDOWS
-        private void InitializeTts()
-        {
-            #if WINDOWS
-                _synth.SetOutputToNull();
-                RefreshVoices();
-            #endif
-        }
-
-        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        private void RefreshVoices()
-        {
-            #if WINDOWS
-                ViewModel.AvailableVoices.Clear();
-                foreach (var voice in _synth.GetInstalledVoices().Where(v => v.Enabled))
-                {
-                    ViewModel.AvailableVoices.Add(voice.VoiceInfo);
-                }
-                ViewModel.SelectedVoice = ViewModel.AvailableVoices.FirstOrDefault();
-            #endif
-        }
-        #else
-            private void InitializeTts()
-            {
-                ViewModel.AvailableVoices.Clear();
-            }
-        #endif
-
-        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        private async void PreviewTts_Click(object sender, RoutedEventArgs e)
-        {
-        #if WINDOWS
-            if (string.IsNullOrWhiteSpace(ViewModel.TtsText)) return;
-
-            try
-            {
-                StopAudioProcessing();
-                _ttsAudioStream?.Dispose();
-
-                _ttsAudioStream = new MemoryStream();
-                var formatInfo = new SpeechAudioFormatInfo(44100, AudioBitsPerSample.Sixteen, AudioChannel.Stereo);
-                
-                _synth.SetOutputToAudioStream(_ttsAudioStream, formatInfo);
-                
-                if (ViewModel.SelectedVoice != null)
-                {
-                    _synth.SelectVoice(ViewModel.SelectedVoice.Name);
-                }
-
-                await Task.Run(() => _synth.Speak(ViewModel.TtsText)); 
-                _ttsAudioStream.Position = 0;
-                StartTtsPlayback();
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"TTS Error: {ex.Message}");
-            }
-        #else
-            await Task.CompletedTask;
-        #endif
-        }
-
-        private void StartTtsPlayback()
-        {
-            try
-            {
-                StopAudioProcessing(updateStatus: false);
-
-                var ttsReader = new WaveFileReader(_ttsAudioStream);
-                var loopStream = new LoopStream(ttsReader) { Loop = ViewModel.IsLoopingEnabled };
-
-                var targetFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
-                float initialVolume = (float)(ViewModel.TtsVolume / 100.0);
-
-                var soundParams = new SoundItem
-                {
-                    Volume = ViewModel.TtsVolume,
-                    Pitch = ViewModel.TtsPitch,
-                    Bass = 0,
-                    Treble = 0
-                };
-
-                var virtualChain = CreateProcessingChain(loopStream, targetFormat, soundParams, initialVolume);
-                var speakerChain = CreateProcessingChain(loopStream, targetFormat, soundParams, initialVolume);
-
-                if (virtualChain?.Volume == null || speakerChain?.Volume == null)
-                {
-                    UpdateStatus("⚠️ Failed to create TTS processing chain");
-                    return;
-                }
-
-                // Set up providers
-                _equalizerVirtual = virtualChain.Value.Eq;
-                _pitchShifterVirtual = virtualChain.Value.Pitch;
-                _volumeProviderVirtual = virtualChain.Value.Volume;
-
-                _equalizerSpeaker = speakerChain.Value.Eq;
-                _pitchShifterSpeaker = speakerChain.Value.Pitch;
-                _volumeProviderSpeaker = speakerChain.Value.Volume;
-
-                // Initialize outputs
-                InitializeVirtualOutput();
-                InitializeSpeakerOutput();
-
-                _currentPlaybackState = PlaybackState.Playing;
-                UpdateStatus($"🗣️ Playing TTS: {ViewModel.TtsText.TrimTo(20)}");
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"TTS Playback Error: {ex.Message}");
-            }
-            finally
-            {
-                UpdatePlayPauseButtonState();
-            }
-        }
-
-        [System.Runtime.Versioning.SupportedOSPlatform("windows")]
-        private async void SaveTtsAudio_Click(object sender, RoutedEventArgs e)
-        {
-            if (_ttsAudioStream == null) return;
-
-            try
-            {
-                var topLevel = TopLevel.GetTopLevel(this);
-                if (topLevel == null)
-                {
-                    UpdateStatus("Unable to access file system");
-                    return;
-                }
-                var file = await topLevel.StorageProvider.SaveFilePickerAsync(new FilePickerSaveOptions
-                {
-                    Title = "Save TTS Audio",
-                    SuggestedFileName = $"TTS_{DateTime.Now:yyyyMMddHHmmss}.wav",
-                    FileTypeChoices = new[] 
-                    {
-                        new FilePickerFileType("WAV Audio") 
-                        { 
-                            Patterns = new[] { "*.wav" } 
-                        }
-                    }
-                });
-
-                if (file != null)
-                {
-                    await using var stream = await file.OpenWriteAsync();
-                    _ttsAudioStream.Position = 0;
-                    await _ttsAudioStream.CopyToAsync(stream);
-
-                    var newItem = new SoundItem
-                    {
-                        Path = file.Path.AbsolutePath,
-                        Name = $"TTS: {ViewModel.TtsText.TrimTo(20)}",
-                        Volume = ViewModel.TtsVolume,
-                        Pitch = ViewModel.TtsPitch
-                    };
-
-                    ViewModel.SelectedSoundboard?.Sounds.Add(newItem);
-                    SaveSoundLibrary();
-                    UpdateStatus("💾 TTS audio saved to soundboard!");
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Save Error: {ex.Message}");
             }
         }
 
