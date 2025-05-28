@@ -11,8 +11,6 @@ namespace BoomBx.Views
     {
        #if WINDOWS
         private TtsService? _ttsService;
-        #else
-        private object? _ttsService;
         #endif
 
         private void InitializeTts()
@@ -22,7 +20,7 @@ namespace BoomBx.Views
             #endif
         }
 
-        private async void PreviewTts_Click(object sender, RoutedEventArgs e)
+        private async void PreviewTts_Click(object? sender, RoutedEventArgs e)
         {
         #if WINDOWS
             if (_ttsService == null) return;
@@ -36,6 +34,8 @@ namespace BoomBx.Views
             {
                 UpdateStatus($"TTS Error: {ex.Message}");
             }
+        #else
+            await Task.CompletedTask;
         #endif
         }
 
@@ -83,6 +83,8 @@ namespace BoomBx.Views
             {
                 UpdateStatus($"Save Error: {ex.Message}");
             }
+#else
+            await Task.CompletedTask;
 #endif
         }
 

@@ -39,28 +39,11 @@ namespace BoomBx.Views
 {
     public partial class MainWindow : Window
     {
-
         private readonly AppSettings _settings = new();
 
-
-        private List<MMDevice> _playbackDevices = new();
-        private List<MMDevice> _captureDevices = new();
         private bool _installationDismissed;
-        private IWavePlayer? _audioWaveOutSpeaker;
-        private VolumeSampleProvider? _volumeProviderVirtual;
-        private VolumeSampleProvider? _volumeProviderSpeaker;
-        private MixingSampleProvider? _persistentMixer;
-        private SoundItem? _currentSoundSubscription;
         private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
         private Func<Task>? _closeSplashAction;
-        private enum PlaybackState { Stopped, Playing, Paused }
-        private PlaybackState _currentPlaybackState = PlaybackState.Stopped;
-        private LoopStream? _virtualLoopStream;
-        private LoopStream? _speakerLoopStream;
-        private EqualizerSampleProvider? _equalizerVirtual;
-        private EqualizerSampleProvider? _equalizerSpeaker;
-        private PitchShifter? _pitchShifterVirtual;
-        private PitchShifter? _pitchShifterSpeaker;
 
         private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)
         {
@@ -83,11 +66,6 @@ namespace BoomBx.Views
             }
         }
 
-        protected override void OnClosed(EventArgs e)
-        {
-            _deviceManager.Dispose();
-            base.OnClosed(e);
-        }
 
         public new void Show()
         {
@@ -103,15 +81,18 @@ namespace BoomBx.Views
             Console.WriteLine("[1] MainWindow constructor started");
 
             this.Styles.Add(new FluentTheme());
+
             InitializeComponent();
+
             DataContext = new MainWindowViewModel();
+
             _deviceManager = new DeviceManager(
-                (MainWindowViewModel)DataContext, 
+                (MainWindowViewModel)DataContext!,
                 _settings,
                 Dispatcher.UIThread
             );
 
-
+            InitializeAudioService();
             InitializeTts();
 
             this.ShowInTaskbar = true;
@@ -176,94 +157,6 @@ namespace BoomBx.Views
             {
                 Console.WriteLine($"Error loading default icon: {ex}");
             }
-        }
-
-        private void ViewModel_PropertyChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (e.PropertyName == nameof(MainWindowViewModel.SelectedSound))
-            {
-                if (_currentPlaybackState != PlaybackState.Stopped)
-                {
-                    StopAudioProcessing();
-                }
-
-                if (_currentSoundSubscription != null)
-                {
-                    _currentSoundSubscription.PropertyChanged -= SoundItem_VolumeChanged;
-                }
-
-                _currentSoundSubscription = ViewModel.SelectedSound;
-
-                if (_currentSoundSubscription != null)
-                {
-                    _currentSoundSubscription.PropertyChanged += SoundItem_VolumeChanged;
-                }
-            }
-            else if (e.PropertyName == nameof(MainWindowViewModel.IsLoopingEnabled))
-            {
-                if (_virtualLoopStream != null)
-                    _virtualLoopStream.Loop = ViewModel.IsLoopingEnabled;
-                if (_speakerLoopStream != null)
-                    _speakerLoopStream.Loop = ViewModel.IsLoopingEnabled;
-            }
-        }
-
-        private void SoundItem_VolumeChanged(object? sender, PropertyChangedEventArgs e)
-        {
-            if (sender is not SoundItem soundItem ||
-                _currentPlaybackState != PlaybackState.Playing ||
-                _volumeProviderVirtual == null ||
-                _volumeProviderSpeaker == null)
-            {
-                return;
-            }
-
-            try
-            {
-                switch (e.PropertyName)
-                {
-                    case nameof(SoundItem.Volume):
-                        _volumeProviderVirtual.Volume = (float)soundItem.Volume / 100;
-                        _volumeProviderSpeaker.Volume = (float)soundItem.Volume / 100;
-                        break;
-
-                    case nameof(SoundItem.Bass):
-                    case nameof(SoundItem.Treble):
-                        _equalizerVirtual?.UpdateFilters(soundItem);
-                        _equalizerSpeaker?.UpdateFilters(soundItem);
-                        break;
-
-                    case nameof(SoundItem.Pitch):
-                        _pitchShifterVirtual?.SetPitch((float)soundItem.Pitch);
-                        _pitchShifterSpeaker?.SetPitch((float)soundItem.Pitch);
-                        break;
-                }
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"⚠️ Update failed: {ex.Message}");
-            }
-        }
-
-        private void PlayPauseHandler(object? sender, RoutedEventArgs e)
-        {
-            switch (_currentPlaybackState)
-            {
-                case PlaybackState.Stopped:
-                    StartAudioProcessing();
-                    break;
-                case PlaybackState.Playing:
-                    PauseAudioProcessing();
-                    break;
-                case PlaybackState.Paused:
-                    ResumeAudioProcessing();
-                    break;
-            }
-        }
-
-        private void StopHandler(object? sender, RoutedEventArgs e)
-        {
-            StopAudioProcessing();
         }
 
         private async Task MainWindow_LoadedAsync()
@@ -540,6 +433,28 @@ namespace BoomBx.Views
             }
         }
 
+        public void PlaybackDeviceChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is MMDevice device)
+            {
+                _audioService?.HandlePlaybackDeviceChanged(device);
+            }
+        }
+
+        public void CaptureDeviceChanged(object? sender, SelectionChangedEventArgs e)
+        {
+            if (e.AddedItems.Count > 0 && e.AddedItems[0] is MMDevice device)
+            {
+                _audioService?.HandleCaptureDeviceChanged(device);
+            }
+        }
+
+        protected override void OnClosed(EventArgs e)
+        {
+            _audioService?.Dispose();
+            base.OnClosed(e);
+        }
+
         private bool CheckDriverPresence(string installerName)
         {
             try
@@ -746,245 +661,7 @@ namespace BoomBx.Views
                 StatusMessage.Text = $"Error: {ex.Message}";
             }
         }
-
-
-        private void StartAudioProcessing()
-        {
-            try
-            {
-                StopAudioProcessing(updateStatus: false);
-
-                if (ViewModel.SelectedSound == null)
-                {
-                    UpdateStatus("🔇 No sound selected");
-                    return;
-                }
-
-                if (string.IsNullOrWhiteSpace(ViewModel.SelectedSound.Path) || !File.Exists(ViewModel.SelectedSound.Path))
-                {
-                    UpdateStatus("❌ Invalid audio file path");
-                    return;
-                }
-
-                var tempVirtualStream = CreateAudioStream(ViewModel.SelectedSound.Path);
-                var tempSpeakerStream = CreateAudioStream(ViewModel.SelectedSound.Path);
-
-                if (tempVirtualStream == null || tempSpeakerStream == null)
-                {
-                    UpdateStatus("⚠️ Failed to initialize audio streams");
-                    tempVirtualStream?.Dispose();
-                    tempSpeakerStream?.Dispose();
-                    return;
-                }
-
-                if (tempVirtualStream.WaveFormat == null || tempSpeakerStream.WaveFormat == null)
-                {
-                    UpdateStatus("⚠️ Audio stream has invalid format");
-                    tempVirtualStream.Dispose();
-                    tempSpeakerStream.Dispose();
-                    return;
-                }
-
-                _virtualLoopStream = tempVirtualStream;
-                _speakerLoopStream = tempSpeakerStream;
-                _virtualLoopStream.Loop = ViewModel.IsLoopingEnabled;
-                _speakerLoopStream.Loop = ViewModel.IsLoopingEnabled;
-
-                var targetFormat = WaveFormat.CreateIeeeFloatWaveFormat(44100, 2);
-                float initialVolume = (float)(ViewModel.SelectedSound.Volume / 100.0);
-
-                var virtualChain = CreateProcessingChain(_virtualLoopStream, targetFormat, ViewModel.SelectedSound, initialVolume);
-                var speakerChain = CreateProcessingChain(_speakerLoopStream, targetFormat, ViewModel.SelectedSound, initialVolume);
-
-                if (virtualChain?.Volume == null || speakerChain?.Volume == null)
-                {
-                    UpdateStatus("⚠️ Failed to create processing chain");
-                    StopAudioProcessing(updateStatus: false);
-                    return;
-                }
-
-                if (virtualChain is { } vChain)
-                {
-                    _equalizerVirtual = vChain.Eq;
-                    _pitchShifterVirtual = vChain.Pitch;
-                    _volumeProviderVirtual = vChain.Volume;
-                }
-
-                if (speakerChain is { } sChain)
-                {
-                    _equalizerSpeaker = sChain.Eq;
-                    _pitchShifterSpeaker = sChain.Pitch;
-                    _volumeProviderSpeaker = sChain.Volume;
-                }
-
-                InitializeVirtualOutput();
-                InitializeSpeakerOutput();
-
-                _currentPlaybackState = PlaybackState.Playing;
-                UpdateStatus($"🎵 Playing {Path.GetFileName(ViewModel.SelectedSound.Path)}");
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"⛔ Error: {ex.Message}");
-                StopAudioProcessing(updateStatus: false);
-            }
-            finally
-            {
-                UpdatePlayPauseButtonState();
-            }
-        }
-
-
-        private (EqualizerSampleProvider Eq, PitchShifter Pitch, VolumeSampleProvider Volume)?
-            CreateProcessingChain(LoopStream stream, WaveFormat format, SoundItem sound, float volume)
-        {
-            try
-            {
-                if (stream == null) throw new ArgumentNullException(nameof(stream));
-                if (sound == null) throw new ArgumentNullException(nameof(sound));
-                if (stream.WaveFormat == null) throw new InvalidOperationException("Stream has no WaveFormat");
-
-                var sampleProvider = stream.ToSampleProvider();
-                if (sampleProvider == null) throw new InvalidOperationException("ToSampleProvider returned null");
-                if (sampleProvider.WaveFormat == null) throw new InvalidOperationException("Sample provider has no WaveFormat");
-
-                var provider = DeviceManager.ConvertFormat(sampleProvider, format);
-                if (provider == null) throw new InvalidOperationException("Format conversion returned null");
-                if (provider.WaveFormat == null) throw new InvalidOperationException("Converted provider has no WaveFormat");
-
-                var eq = new EqualizerSampleProvider(provider, sound);
-                var pitch = new PitchShifter(eq);
-                pitch.SetPitch((float)sound.Pitch);
-                var vol = new VolumeSampleProvider(pitch) { Volume = volume };
-                return (eq, pitch, vol);
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"⚠️ Processing chain error: {ex.Message} (Type: {ex.GetType().Name})");
-                return null;
-            }
-        }
-
-        private void HandlePlaybackStopped(object? sender, StoppedEventArgs args)
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                if (_currentPlaybackState == PlaybackState.Playing && args.Exception == null)
-                {
-                    StopAudioProcessing();
-                    UpdatePlayPauseButtonState();
-                    UpdateStatus("Playback completed");
-                }
-            });
-        }
-
-        private void PauseAudioProcessing()
-        {
-            if (_currentPlaybackState != PlaybackState.Playing) return;
-
-            _audioWaveOutSpeaker?.Pause();
-            if (_persistentMixer != null && _volumeProviderVirtual != null)
-            {
-                _persistentMixer.RemoveMixerInput(_volumeProviderVirtual);
-            }
-            _currentPlaybackState = PlaybackState.Paused;
-            UpdatePlayPauseButtonState();
-        }
-
-        private void ResumeAudioProcessing()
-        {
-            if (_currentPlaybackState != PlaybackState.Paused) return;
-
-            if (_persistentMixer != null && _volumeProviderVirtual != null)
-            {
-                _persistentMixer.AddMixerInput(_volumeProviderVirtual);
-            }
-            _audioWaveOutSpeaker?.Play();
-            _currentPlaybackState = PlaybackState.Playing;
-            UpdatePlayPauseButtonState();
-        }
-
-        private void StopAudioProcessing(bool updateStatus = true)
-        {
-            try
-            {
-                _currentPlaybackState = PlaybackState.Stopped;
-
-                // Stop and dispose speaker output
-                _audioWaveOutSpeaker?.Stop();
-                _audioWaveOutSpeaker?.Dispose();
-
-                // Remove virtual output from mixer
-                if (_volumeProviderVirtual != null)
-                {
-                    _deviceManager.RemoveMixerInput(_volumeProviderVirtual);
-                }
-
-                // Dispose audio streams
-                _virtualLoopStream?.Dispose();
-                _speakerLoopStream?.Dispose();
-
-                // Reset processing chain
-                _equalizerVirtual = null;
-                _equalizerSpeaker = null;
-                _pitchShifterVirtual = null;
-                _pitchShifterSpeaker = null;
-                _volumeProviderVirtual = null;
-                _volumeProviderSpeaker = null;
-                _virtualLoopStream = null;
-                _speakerLoopStream = null;
-
-                if (updateStatus) UpdateStatus("⏹ Playback stopped");
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"⚠️ Stop error: {ex.Message}");
-            }
-            finally
-            {
-                UpdatePlayPauseButtonState();
-            }
-        }
-
-        private void UpdatePlayPauseButtonState()
-        {
-            Dispatcher.UIThread.Post(() =>
-            {
-                PlayPauseButton.Content = _currentPlaybackState switch
-                {
-                    PlaybackState.Playing => "⏸ Pause",
-                    PlaybackState.Paused => "▶ Resume",
-                    _ => "▶ Play"
-                };
-
-                StopButton.IsVisible = _currentPlaybackState != PlaybackState.Stopped;
-            });
-        }
-
-        private LoopStream? CreateAudioStream(string filePath)
-        {
-            try
-            {
-                WaveStream reader = Path.GetExtension(filePath).ToLower() switch
-                {
-                    ".mp3" => new Mp3FileReader(filePath),
-                    ".wav" => new WaveFileReader(filePath),
-                    _ => throw new InvalidOperationException("Unsupported file format")
-                };
-                if (reader.WaveFormat == null ||
-                    reader.WaveFormat.Channels <= 0 ||
-                    reader.WaveFormat.SampleRate <= 0)
-                {
-                    throw new InvalidOperationException("Audio file has an invalid format");
-                }
-                return new LoopStream(reader);
-            }
-            catch (Exception ex)
-            {
-                UpdateStatus($"Error loading audio: {ex.Message}");
-                return null;
-            }
-        }
+        
 
 
         private void SoundboardList_SelectionChanged(object sender, SelectionChangedEventArgs e)
