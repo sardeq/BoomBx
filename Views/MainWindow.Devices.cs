@@ -17,8 +17,7 @@ namespace BoomBx.Views
         {
             try
             {
-                if (_volumeProviderVirtual != null && 
-                    _deviceManager.IsUsingVirtualOutput)
+                if (_volumeProviderVirtual != null)
                 {
                     _deviceManager.AddMixerInput(_volumeProviderVirtual);
                 }

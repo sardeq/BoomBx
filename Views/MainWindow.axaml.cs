@@ -53,6 +53,7 @@ namespace BoomBx.Views
             }
         }
 
+
         public void SetCloseSplashAction(Func<Task> action)
         {
             _closeSplashAction = action;
@@ -188,6 +189,7 @@ namespace BoomBx.Views
                 });
 
                 await _deviceManager.InitializeAsync();
+                _audioService?.InitializeDevices();
 
                 Console.WriteLine("[11] Initialization complete");
             }
