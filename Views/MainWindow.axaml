@@ -81,7 +81,8 @@
                                  GroupName="Nav"
                                  Content="Text-to-Speech"
                                  Classes="SidebarButton"
-                                 Tag="{x:Static views:NavigationItem.TextToSpeech}"/>
+                                 Tag="{x:Static views:NavigationItem.TextToSpeech}"
+                                 Checked="TextToSpeechNav_Checked"/>
                     
                     <RadioButton x:Name="VoiceChangerNav"
                                  GroupName="Nav"

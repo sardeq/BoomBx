@@ -30,6 +30,7 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\Sounds\vineboom.mp3" />
     <EmbeddedResource Include="InstallScripts\InstallVBCable.bat" />
+    <EmbeddedResource Include="espeak\espeak.exe" />
   </ItemGroup>
 
   <ItemGroup>
