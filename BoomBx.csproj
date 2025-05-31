@@ -1,8 +1,8 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <Version>0.1.5</Version>
-    <AssemblyVersion>0.1.5.0</AssemblyVersion>
-    <FileVersion>0.1.5.0</FileVersion>
+    <Version>0.1.6</Version>
+    <AssemblyVersion>0.1.6.0</AssemblyVersion>
+    <FileVersion>0.1.6.0</FileVersion>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <RootNamespace>BoomBx</RootNamespace>
@@ -30,14 +30,14 @@
   <ItemGroup>
     <EmbeddedResource Include="Assets\Sounds\vineboom.mp3" />
     <EmbeddedResource Include="InstallScripts\InstallVBCable.bat" />
-    <EmbeddedResource Include="espeak\Windows\command_line\espeak.exe" />
   </ItemGroup>
 
+  <!-- Updated eSpeak embedding configuration -->
   <ItemGroup>
-    <Content Include="espeak\Windows\**\*">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-      <ExcludeFromSingleFile>true</ExcludeFromSingleFile>
-    </Content>
+    <!-- Include all files in the espeak directory as embedded resources -->
+    <EmbeddedResource Include="espeak\Windows\**\*">
+      <LogicalName>espeak.%(RecursiveDir)%(Filename)%(Extension)</LogicalName>
+    </EmbeddedResource>
   </ItemGroup>
 
   <ItemGroup>
@@ -56,4 +56,10 @@
     <PackageReference Include="NAudio" Version="2.2.1" />
     <PackageReference Include="System.Speech" Version="9.0.5" />
   </ItemGroup>
+
+  <!-- Add this target to debug embedded resources -->
+  <Target Name="ListEmbeddedResources" BeforeTargets="Build">
+    <Message Text="Embedded Resources:" Importance="high" />
+    <Message Text="@(EmbeddedResource)" Importance="high" />
+  </Target>
 </Project>

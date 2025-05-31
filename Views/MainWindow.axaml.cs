@@ -1,23 +1,17 @@
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using NAudio.CoreAudioApi;
-using NAudio.Wave;
 using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Diagnostics;
 using System.Linq;
-using NAudio.Wave.SampleProviders;
-using MsBox.Avalonia;
-using MsBox.Avalonia.Dto;
-using MsBox.Avalonia.Enums;
 using System.Threading.Tasks;
 using Avalonia.Threading;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia;
 using System.Threading;
 using Avalonia.Themes.Fluent;
-using System.Runtime.InteropServices;
 using Avalonia.Platform.Storage;
 using System.Collections.ObjectModel;
 using System.Text.Json;
@@ -27,13 +21,12 @@ using BoomBx.Models;
 using Avalonia.Media.Imaging;
 using Avalonia.Platform;
 using System.Reflection;
-using System.Text;
 using Avalonia.Media;
 using System.Text.Json.Serialization;
 using Avalonia.Input;
-using System.Speech.Synthesis;
-using System.Speech.AudioFormat;
 using BoomBx.Services;
+using MsBox.Avalonia;
+using MsBox.Avalonia.Enums;
 
 namespace BoomBx.Views
 {
@@ -95,6 +88,10 @@ namespace BoomBx.Views
 
             InitializeAudioService();
             InitializeTts();
+            this.Closing += (s, e) =>
+            {
+                _ttsService?.Cleanup();
+            };
 
             this.ShowInTaskbar = true;
             this.WindowState = WindowState.Normal;
@@ -103,12 +100,51 @@ namespace BoomBx.Views
             Console.WriteLine("[3] Window properties set");
         }
 
+        private void DebugEmbeddedResources()
+        {
+            try
+            {
+                var assembly = Assembly.GetExecutingAssembly();
+                var resourceNames = assembly.GetManifestResourceNames();
+
+                Console.WriteLine($"=== DEBUG: Found {resourceNames.Length} embedded resources ===");
+                Logger.Log($"Found {resourceNames.Length} embedded resources:");
+
+                foreach (var resourceName in resourceNames.OrderBy(n => n))
+                {
+                    Console.WriteLine($"Resource: {resourceName}");
+                    Logger.Log($"Resource: {resourceName}");
+                }
+
+                // Check specifically for eSpeak resources
+                var espeakResources = resourceNames.Where(n => n.Contains("espeak", StringComparison.OrdinalIgnoreCase)).ToArray();
+                Console.WriteLine($"=== Found {espeakResources.Length} eSpeak-related resources ===");
+                Logger.Log($"Found {espeakResources.Length} eSpeak-related resources:");
+
+                foreach (var resource in espeakResources)
+                {
+                    Console.WriteLine($"eSpeak Resource: {resource}");
+                    Logger.Log($"eSpeak Resource: {resource}");
+                }
+
+                Console.WriteLine("=== End Resource Debug ===");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error debugging resources: {ex.Message}");
+                Logger.Log($"Error debugging resources: {ex.Message}");
+            }
+        }
+
+
         public async Task InitializeAsync()
         {
             try
             {
                 Console.WriteLine("[2] Starting async initialization");
                 await LoadIconAsync();
+
+
                 await Dispatcher.UIThread.InvokeAsync(() =>
                 {
                     if (DataContext is INotifyPropertyChanged npc)
@@ -117,12 +153,28 @@ namespace BoomBx.Views
                     }
                 });
                 Console.WriteLine("[2] Async initialization complete");
+                DebugEmbeddedResources();
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[ERROR] Initialization failed: {ex}");
                 throw;
             }
+        }
+
+        private void ShowFatalError(string message)
+        {
+            Dispatcher.UIThread.Post(async () =>
+            {
+                var box = MessageBoxManager.GetMessageBoxStandard(
+                    "Fatal Error",
+                    message + "\n\nApplication will exit.",
+                    ButtonEnum.Ok                
+                    );
+                
+                await box.ShowAsync();
+                Environment.Exit(1);
+            });
         }
 
         public async Task StartMainInitialization()
@@ -164,6 +216,7 @@ namespace BoomBx.Views
         {
             try
             {
+                
                 LoadSoundLibrary();
 
                 await Dispatcher.UIThread.InvokeAsync(() =>

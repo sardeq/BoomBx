@@ -23,9 +23,20 @@ namespace BoomBx.Views
 
         private void InitializeTts()
         {
-            if (DataContext is MainWindowViewModel viewModel)
+            try
             {
-                _ttsService = new TtsService(viewModel);
+                if (DataContext is MainWindowViewModel viewModel)
+                {
+                    _ttsService = new TtsService(viewModel);
+                    Console.WriteLine("TTS Service initialized successfully");
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"TTS initialization failed: {ex.Message}");
+                // Don't throw here - let the app continue without TTS if needed
+                Logger.Log($"TTS Init Error: {ex}");
+                UpdateStatus("TTS unavailable - check eSpeak installation");
             }
         }
 
