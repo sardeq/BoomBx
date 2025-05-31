@@ -55,7 +55,12 @@ namespace BoomBx.Views
 
         private async void SaveTtsAudio_Click(object sender, RoutedEventArgs e)
         {
-            if (_ttsService?.GetAudioStream() == null) return;
+            // First check if service exists
+            if (_ttsService == null) return;
+
+            // Then get the stream and check for null
+            var audioStream = _ttsService.GetAudioStream();
+            if (audioStream == null) return;
 
             try
             {
@@ -69,30 +74,37 @@ namespace BoomBx.Views
                         SuggestedFileName = $"TTS_{DateTime.Now:yyyyMMddHHmmss}.wav",
                         FileTypeChoices = new[]
                         {
-                            new FilePickerFileType("WAV Audio")
-                            {
-                                Patterns = new[] { "*.wav" }
-                            }
+                    new FilePickerFileType("WAV Audio")
+                    {
+                        Patterns = new[] { "*.wav" }
+                    }
                         }
                     });
 
-                if (DataContext is MainWindowViewModel vm)
+                if (file != null)
                 {
-                    if (file != null)
+                    string filePath = file.Path.LocalPath;
+
+                    using (var fileStream = File.Create(filePath))
+                    {
+                        // Reset position before copying
+                        audioStream.Position = 0;
+                        await audioStream.CopyToAsync(fileStream);
+                    }
+
+                    if (DataContext is MainWindowViewModel vm)
                     {
                         var newItem = new SoundItem
                         {
-                            Path = file.Path.AbsolutePath,
+                            Path = filePath,
                             Name = $"TTS: {vm.TtsText?.TrimTo(20) ?? "Untitled"}",
                             Volume = vm.TtsVolume,
                             Pitch = vm.TtsPitch
-
                         };
 
                         vm.SelectedSoundboard?.Sounds.Add(newItem);
                         SaveSoundLibrary();
                         UpdateStatus("💾 TTS audio saved to soundboard!");
-
                     }
                 }
             }
@@ -100,8 +112,9 @@ namespace BoomBx.Views
             {
                 UpdateStatus($"Save Error: {ex.Message}");
             }
-            await Task.CompletedTask;
         }
+
+
 
         private void StartTtsPlayback()
         {
