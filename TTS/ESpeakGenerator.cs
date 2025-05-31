@@ -76,10 +76,8 @@ public class ESpeakGenerator
 
         string tempPath = Path.GetTempFileName() + ".wav";
         
-        // Escape quotes in text to prevent command injection
         text = text.Replace("\"", "\\\"");
         
-        // IMPORTANT: Use --path to specify where espeak-data is located
         string args = $"--path=\"{_espeakDataPath}\" -v {voice} -p {pitchValue} -s {speedValue} -w \"{tempPath}\" \"{text}\"";
 
         Console.WriteLine($"Running eSpeak with args: {args}");
@@ -102,7 +100,6 @@ public class ESpeakGenerator
         {
             process.Start();
             
-            // Capture error output for debugging
             string errorOutput = await process.StandardError.ReadToEndAsync();
             
             await process.WaitForExitAsync();

@@ -264,10 +264,23 @@
                                             Value="{Binding TtsPitch, Mode=TwoWay}"
                                             Foreground="#007ACC"/>
                                     
-                                    <TextBlock Text="Speed:" Foreground="#E0E0E0"/>
-                                    <Slider Minimum="0.5" Maximum="2.0" 
-                                            Value="{Binding TtsSpeed, Mode=TwoWay}"
-                                            Foreground="#007ACC"/>
+                                    <StackPanel Spacing="5">
+                                        <StackPanel Orientation="Horizontal">
+                                            <TextBlock Text="Speed:" Foreground="#E0E0E0"/>
+                                            <TextBlock Text="{Binding TtsSpeed, StringFormat=' {0:F1}x'}" 
+                                                    Foreground="#A0A0A0" 
+                                                    Margin="5,0,0,0"/>
+                                        </StackPanel>
+                                        <Slider Minimum="0.1" Maximum="2.0" 
+                                                Value="{Binding TtsSpeed, Mode=TwoWay}"
+                                                TickFrequency="0.1"
+                                                IsSnapToTickEnabled="False"
+                                                Foreground="#007ACC"/>
+                                        <TextBlock Text="Tip: Use 0.5-0.8 for slower, clearer speech" 
+                                                FontSize="11" 
+                                                Foreground="#606060" 
+                                                Margin="0,-5,0,5"/>
+                                    </StackPanel>
                                 </StackPanel>
                             </StackPanel>
 

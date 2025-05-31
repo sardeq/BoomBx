@@ -49,7 +49,7 @@ namespace BoomBx.ViewModels
         private double _ttsPitch = 1.0;
 
         [ObservableProperty]
-        private double _ttsSpeed = 1.0;
+        private double _ttsSpeed = 0.5;
 
         [ObservableProperty]
         private ObservableCollection<VoiceInfo> _availableVoices = [];
