@@ -13,7 +13,7 @@
 
 <div align="center">
 
-[![Download](https://img.shields.io/badge/Download-v0.1.5-%23007ACC?style=for-the-badge&logo=github)](https://github.com/sardeq/BoomBx/releases/latest)
+[![Download](https://img.shields.io/badge/Download-v0.1.6-%23007ACC?style=for-the-badge&logo=github)](https://github.com/sardeq/BoomBx/releases/latest)
   
 </div>
 

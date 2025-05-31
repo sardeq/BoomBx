@@ -51,3 +51,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/)
 ### Fixed
 - Fixed app data bug
 - Partially fixed driver checks and drivers not installing on some devices
+
+## [0.1.6] - 2025-5-31
+### Added
+- Added Audio Controls like Bass and Pitch
+- Added TTS integrated with ESpeak
+- Added New UI for Sounds tab
+### Fixed
+- Fixed pitch and bass bugs
+- Fixed app not finding espeak data files
+- Fixed speed formula for TTS
+- Fixed UI Issues
+- Allowed Minimize and Maximize
