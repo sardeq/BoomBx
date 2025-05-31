@@ -9,84 +9,110 @@ using System.Threading.Tasks;
 
 public class ESpeakGenerator
 {
-    private string? _extractedPath;
     private bool _isInitialized = false;
+    private readonly string _espeakPath;
+    private readonly string _espeakDataPath;
+
+    public ESpeakGenerator()
+    {
+        string baseDir = AppDomain.CurrentDomain.BaseDirectory;
+        
+        _espeakPath = Path.Combine(
+            baseDir,
+            "espeak", "Windows", "command_line", "espeak.exe"
+        );
+        
+        _espeakDataPath = Path.Combine(
+            baseDir,
+            "espeak", "Windows"
+        );
+    }
+
 
     public void Initialize()
     {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+        // Verify eSpeak executable exists
+        if (!File.Exists(_espeakPath))
         {
-            ExtractEmbeddedESpeak();
+            throw new FileNotFoundException($"eSpeak executable not found at: {_espeakPath}");
         }
-
-        // Verify eSpeak is actually available
-        string executable = GetESpeakExecutable();
-        if (!string.IsNullOrEmpty(executable) && (File.Exists(executable) || executable == "espeak"))
+        
+        // Verify espeak-data folder exists
+        string dataFolder = Path.Combine(_espeakDataPath, "espeak-data");
+        if (!Directory.Exists(dataFolder))
         {
-            _isInitialized = true;
-            Console.WriteLine($"eSpeak initialized with: {executable}");
+            throw new DirectoryNotFoundException($"eSpeak data folder not found at: {dataFolder}");
         }
-        else
-        {
-            throw new FileNotFoundException("eSpeak executable not found. Please install eSpeak.");
-        }
+        
+        _isInitialized = true;
+        Console.WriteLine($"eSpeak initialized with:");
+        Console.WriteLine($"  Executable: {_espeakPath}");
+        Console.WriteLine($"  Data path: {_espeakDataPath}");
     }
 
     public List<string> GetAvailableVoices()
     {
-        return new List<string> { 
-            "en", "en-gb", "en-us", "es", "fr", "de", 
-            "it", "ru", "zh", "ja", "hi", "ar"
+        return new List<string> {
+            "en", "en-gb", "en-us", "es", "fr", "de",
+            "it", "ru", "zh", "hi"
         };
+        // add arabic soon
     }
 
     public async Task<MemoryStream> GenerateSpeechAsync(string text, string voice, float speed, float pitch)
     {
         if (!_isInitialized)
         {
-            throw new InvalidOperationException("eSpeak not initialized");
+            Initialize();
+        }
+
+        if (!File.Exists(_espeakPath))
+        {
+            throw new FileNotFoundException($"eSpeak executable not found at: {_espeakPath}");
         }
 
         int speedValue = (int)(175 * speed);
         int pitchValue = (int)(pitch * 50);
 
         string tempPath = Path.GetTempFileName() + ".wav";
-        string executable = GetESpeakExecutable();
-
+        
         // Escape quotes in text to prevent command injection
         text = text.Replace("\"", "\\\"");
         
-        string args = $"-v {voice} -p {pitchValue} -s {speedValue} -w \"{tempPath}\" \"{text}\"";
+        // IMPORTANT: Use --path to specify where espeak-data is located
+        string args = $"--path=\"{_espeakDataPath}\" -v {voice} -p {pitchValue} -s {speedValue} -w \"{tempPath}\" \"{text}\"";
 
-        Console.WriteLine($"Running eSpeak: {executable} {args}");
+        Console.WriteLine($"Running eSpeak with args: {args}");
 
         var process = new Process
         {
             StartInfo = new ProcessStartInfo
             {
-                FileName = executable,
+                FileName = _espeakPath,
                 Arguments = args,
                 UseShellExecute = false,
                 CreateNoWindow = true,
                 RedirectStandardOutput = true,
-                RedirectStandardError = true
+                RedirectStandardError = true,
+                WorkingDirectory = _espeakDataPath // Set working directory to help eSpeak find files
             }
         };
 
         try
         {
-            var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
             process.Start();
             
-            await process.WaitForExitAsync(cts.Token);
+            // Capture error output for debugging
+            string errorOutput = await process.StandardError.ReadToEndAsync();
+            
+            await process.WaitForExitAsync();
 
             if (process.ExitCode != 0)
             {
-                string error = await process.StandardError.ReadToEndAsync();
-                throw new Exception($"eSpeak error (code {process.ExitCode}): {error}");
+                throw new Exception($"eSpeak error (code {process.ExitCode}): {errorOutput}");
             }
 
-            // Wait for file to be written
+            // Wait for file to be created
             for (int i = 0; i < 10; i++)
             {
                 if (File.Exists(tempPath) && new FileInfo(tempPath).Length > 0)
@@ -96,143 +122,33 @@ public class ESpeakGenerator
                 await Task.Delay(100);
             }
 
-            // Try to read the file
-            for (int i = 0; i < 5; i++)
+            if (!File.Exists(tempPath))
             {
-                try
-                {
-                    var bytes = await File.ReadAllBytesAsync(tempPath);
-                    var stream = new MemoryStream(bytes);
-                    File.Delete(tempPath);
-                    stream.Position = 0;
-                    return stream;
-                }
-                catch (IOException) when (i < 4)
-                {
-                    await Task.Delay(200);
-                }
+                throw new Exception("eSpeak did not generate output file");
             }
-            throw new Exception("Failed to read TTS output file");
+
+            // Read and return the generated audio
+            var bytes = await File.ReadAllBytesAsync(tempPath);
+            var stream = new MemoryStream(bytes);
+            stream.Position = 0;
+            return stream;
         }
         catch (Exception ex)
         {
             Console.WriteLine($"eSpeak generation error: {ex.Message}");
-            // Clean up temp file if it exists
-            try { if (File.Exists(tempPath)) File.Delete(tempPath); } catch { }
             throw;
         }
         finally
         {
-            if (!process.HasExited)
-            {
-                try { process.Kill(); } catch { /* Ignore */ }
-            }
+            // Clean up temp file
+            try 
+            { 
+                if (File.Exists(tempPath)) 
+                    File.Delete(tempPath); 
+            } 
+            catch { /* Ignore cleanup errors */ }
+            
             process.Dispose();
-        }
-    }
-
-    private void ExtractEmbeddedESpeak()
-    {
-        string targetDir = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "espeak");
-        string targetPath = Path.Combine(targetDir, "espeak.exe");
-
-        try
-        {
-            Directory.CreateDirectory(targetDir);
-            
-            if (File.Exists(targetPath))
-            {
-                var fileInfo = new FileInfo(targetPath);
-                if (fileInfo.Length > 0)
-                {
-                    _extractedPath = targetPath;
-                    Console.WriteLine($"Embedded eSpeak already exists: {targetPath} ({fileInfo.Length} bytes)");
-                    return;
-                }
-                else
-                {
-                    Console.WriteLine("Found empty espeak.exe, deleting and re-extracting...");
-                    File.Delete(targetPath);
-                }
-            }
-            
-            var assembly = Assembly.GetExecutingAssembly();
-            var resourceName = "BoomBx.espeak.espeak.exe";
-            
-            using var resource = assembly.GetManifestResourceStream(resourceName);
-            if (resource == null)
-            {
-                Console.WriteLine($"WARNING: Embedded resource '{resourceName}' not found!");
-                return;
-            }
-            
-            Console.WriteLine($"Extracting embedded eSpeak ({resource.Length} bytes)...");
-            
-            using var file = File.Create(targetPath);
-            resource.CopyTo(file);
-            file.Flush();
-            
-            _extractedPath = targetPath;
-            Console.WriteLine($"Successfully extracted eSpeak to: {targetPath}");
-        }
-        catch (Exception ex)
-        {
-            Console.WriteLine($"Failed to extract eSpeak: {ex.Message}");
-        }
-    }
-
-    private string GetESpeakExecutable()
-    {
-        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-        {
-            // Priority order for Windows:
-            // 1. Extracted embedded version
-            // 2. Embedded version in app directory
-            // 3. System installation
-            // 4. PATH
-
-            // Check extracted path
-            if (!string.IsNullOrEmpty(_extractedPath) && File.Exists(_extractedPath))
-            {
-                return _extractedPath;
-            }
-
-            // Check embedded path directly
-            string embeddedPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "espeak", "espeak.exe");
-            if (File.Exists(embeddedPath))
-            {
-                var fileInfo = new FileInfo(embeddedPath);
-                if (fileInfo.Length > 0)
-                {
-                    Console.WriteLine($"Using embedded eSpeak: {embeddedPath}");
-                    return embeddedPath;
-                }
-            }
-
-            // Check common installation paths
-            string[] commonPaths = {
-                @"C:\Program Files (x86)\eSpeak\command_line\espeak.exe",
-                @"C:\Program Files\eSpeak\command_line\espeak.exe",
-                @"C:\eSpeak\command_line\espeak.exe"
-            };
-
-            foreach (string path in commonPaths)
-            {
-                if (File.Exists(path))
-                {
-                    Console.WriteLine($"Using system eSpeak: {path}");
-                    return path;
-                }
-            }
-
-            // Finally, try just "espeak" in case it's in PATH
-            Console.WriteLine("Falling back to 'espeak' command (PATH)");
-            return "espeak";
-        }
-        else
-        {
-            // For Linux/macOS, just use the command
-            return "espeak"; 
         }
     }
 }
