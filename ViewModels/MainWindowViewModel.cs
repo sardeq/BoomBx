@@ -32,6 +32,15 @@ namespace BoomBx.ViewModels
         [ObservableProperty]
         private string? _selectedFilePath;
 
+        [ObservableProperty]
+        private string _playPauseHotkey = "F9";
+
+        [ObservableProperty]
+        private string _stopHotkey = "F10";
+        
+        [ObservableProperty]
+        private string _pauseHotkey = "F11";
+
         public ObservableCollection<Soundboard> Soundboards { get; } = new();
 
         partial void OnSelectedSoundChanged(SoundItem? value)
