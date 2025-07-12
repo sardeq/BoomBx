@@ -8,11 +8,4 @@ obj/
 
 *.db
 
-Services/
-Converters/
-ViewModels/
-Util/
-espeak/
-espeak/Windows/
-
 

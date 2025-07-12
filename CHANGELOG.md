@@ -63,3 +63,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/)
 - Fixed speed formula for TTS
 - Fixed UI Issues
 - Allowed Minimize and Maximize
+
+
+## [0.1.7] - 2025-7-??
+### Added
+- ?
+### Fixed
+- Persistant audio bug fixed
