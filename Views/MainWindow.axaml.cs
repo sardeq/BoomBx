@@ -35,7 +35,7 @@ namespace BoomBx.Views
         private readonly AppSettings _settings = new();
 
         private bool _installationDismissed;
-        private HotkeyManager? _hotkeyManager;
+        private GlobalHotkeyManager? _hotkeyManager;
         private TextBox? _currentlySettingHotkey;
         private MainWindowViewModel ViewModel => (MainWindowViewModel)DataContext!;
         private Func<Task>? _closeSplashAction;
@@ -200,13 +200,7 @@ namespace BoomBx.Views
 
         private void InitializeHotkeys()
         {
-            if (this.TryGetPlatformHandle()?.Handle is not { } handle)
-            {
-                UpdateStatus("Could not get window handle for hotkeys.", true);
-                return;
-            }
-
-            _hotkeyManager = new HotkeyManager(handle);
+            _hotkeyManager = new GlobalHotkeyManager();
             LoadAndRegisterHotkeys();
         }
 
@@ -216,7 +210,7 @@ namespace BoomBx.Views
 
             try
             {
-                // Register Play/Pause Hotkey to its new dedicated handler
+                // Register Play/Pause Hotkey
                 var playPauseGesture = KeyGesture.Parse(_settings.PlayPauseHotkey);
                 _hotkeyManager?.RegisterHotkey(playPauseGesture, OnPlayPauseHotkey);
                 ViewModel.PlayPauseHotkey = playPauseGesture.ToString();
@@ -230,7 +224,7 @@ namespace BoomBx.Views
                 var pauseGesture = KeyGesture.Parse(_settings.PauseHotkey);
                 _hotkeyManager?.RegisterHotkey(pauseGesture, OnPauseHotkey);
                 ViewModel.PauseHotkey = pauseGesture.ToString();
-                
+
                 UpdateStatus("Hotkeys loaded successfully.", false);
             }
             catch (Exception ex)
@@ -238,6 +232,7 @@ namespace BoomBx.Views
                 UpdateStatus($"Failed to register hotkeys: {ex.Message}", true);
             }
         }
+
         
         #region Hotkey Actions
 
@@ -247,35 +242,20 @@ namespace BoomBx.Views
         /// </summary>
         private void OnPlayPauseHotkey()
         {
-            Console.WriteLine("Play/Pause hotkey triggered.");
-            // Ensure a sound is selected if nothing is currently playing or paused.
-            if (_currentPlaybackState == PlaybackState.Stopped && ViewModel.SelectedSound == null)
-            {
-                UpdateStatus("Hotkey: No sound selected to play.", true);
-                return;
-            }
-            
-            // The PlayPauseHandler from MainWindow.Audio.cs already contains the necessary logic.
-            PlayPauseHandler(null, null!);
+            Dispatcher.UIThread.Post(() => PlayPauseHandler(null, null!));
         }
 
-        /// <summary>
-        /// Action for the Stop hotkey.
-        /// </summary>
         private void OnStopHotkey()
         {
-            Console.WriteLine("Stop hotkey triggered.");
-            StopHandler(null, null!);
+            Dispatcher.UIThread.Post(() => StopHandler(null, null!));
         }
 
-        /// <summary>
-        /// Action for the Pause hotkey.
-        /// </summary>
         private void OnPauseHotkey()
         {
-            Console.WriteLine("Pause hotkey triggered.");
-            PauseAudioProcessing();
+            Dispatcher.UIThread.Post(() => PauseAudioProcessing());
         }
+
+
 
         #endregion
 
@@ -285,9 +265,14 @@ namespace BoomBx.Views
 
             _currentlySettingHotkey = textBox;
             UpdateStatus($"Press any key combination to set the hotkey for {textBox.Name}...");
-            // Capture the next key press globally for this window
+
+            // Temporarily disable hotkeys while setting
+            _hotkeyManager?.UnregisterAll();
+
+            // Capture next key press
             this.KeyDown += Hotkey_KeyDown;
         }
+
 
         private void Hotkey_KeyDown(object? sender, KeyEventArgs e)
         {
